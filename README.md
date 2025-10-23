@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # <div align="center"> <img width="300" height="300" alt="ilustracao" src="https://github.com/user-attachments/assets/7099b97f-5573-4089-85ab-f96e19184762" /> <br>[![Python 3.13.2](https://img.shields.io/badge/Python-3.13.2-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/release/python-3132/) [![Django 5.2.2](https://img.shields.io/badge/Django-5.2.2-092E20?logo=django&logoColor=white)](https://docs.djangoproject.com/en/5.2/) [![Bootstrap 5.3.6](https://img.shields.io/badge/Bootstrap-5.3.6-7952B3?logo=bootstrap&logoColor=white)](https://getbootstrap.com/docs/5.3/)</div>
 
 Olá! Este é um projeto de um Sistema de Gerenciamento de Escola por nome CORE que foi desenvolvido pelos alunos do IF Baiano - Campus Guanambi.<br>
@@ -100,3 +101,6 @@ Certifique-se de ter os seguintes softwares instalados antes de iniciar:
     **Apresentação Vídeo do Projeto:**
     
     <iframe width="560" height="315" src="https://www.youtube.com/embed/eVnCa5wuwdU?si=7kCFDV-bTc-Wo-D9" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+=======
+# CEEP
+>>>>>>> dc5164ad2b3aede42d0758f85aa4964f35e64140
