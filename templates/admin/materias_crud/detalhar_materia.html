@@ -1,0 +1,37 @@
+{% extends 'base4.html' %}
+{% load static %}
+
+    {% block content %}
+      <h2 class="mb-4">{{ materia.nome }}</h2>
+
+      {% if professores_com_turmas %}
+      <table class="table table-bordered shadow-sm">
+        <thead class="table-success">
+          <tr>
+            <th class="coluna-professor">Professores</th>
+            <th>Turma(s)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for professor, turmas in professores_com_turmas %}
+          <tr>
+            <td>{{ professor.first_name }} {{ professor.last_name }}</td>
+            <td>
+              {% for turma in turmas %}
+              <span class="badge bg-primary text-dark">{{ turma }}</span>
+              {% endfor %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="alert alert-info">
+        Nenhum professor ou turma vinculado a esta matéria.
+      </div>
+      {% endif %}
+      <a href="{% url 'listar_materias' %}" class="btn btn-secondary">
+        <img src="{%static 'assets/img/voltar.png'%}" width='20px' height='20px' class="me-2">
+      Voltar
+      </a>
+    {% endblock content %}

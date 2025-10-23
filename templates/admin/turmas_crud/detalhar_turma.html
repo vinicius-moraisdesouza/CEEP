@@ -1,0 +1,34 @@
+{% extends 'base4.html' %}
+{% load static %}
+
+    {% block content %}
+      <h2 class="mb-4">{{ turma.nome }}</h2>
+
+      {% if alunos %}
+      <table class="table table-bordered shadow-sm">
+        <thead class="table-success">
+          <tr>
+            <th class="coluna-aluno">Alunos</th>
+            <th>Email</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for aluno in alunos %}
+          <tr>
+            <td>{{ aluno.get_full_name }}</td>
+            <td>{{ aluno.email }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="alert alert-info">
+        Nenhum aluno cadastrado nesta turma.
+      </div>
+      {% endif %}
+
+      <a href="{% url 'listar_turmas' %}" class="btn btn-secondary mt-3">
+        <img src="{%static 'assets/img/voltar.png'%}" width='20px' height='20px' class="me-2">
+      Voltar
+      </a>
+    {% endblock content %}

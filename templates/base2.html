@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>core</title>
+
+  <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}" />
+  <link id="faviconLink" rel="icon" href="{% static 'assets/icon/icone_preto.ico' %}" type="image/x-icon">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+
+</head>
+<body>
+
+  <main class="container py-5">
+    {% block content %}
+    {% endblock content %}
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const faviconLink = document.getElementById('faviconLink');
+      const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+      
+      function updateFavicon(e) {
+        if (e.matches) {
+          faviconLink.href = "{% static 'assets/icon/icone_branco.ico' %}";
+        } else {
+          faviconLink.href = "{% static 'assets/icon/icone_preto.ico' %}";
+        }
+      }
+      
+      updateFavicon(prefersDarkScheme);
+      
+      prefersDarkScheme.addEventListener('change', updateFavicon);
+    });
+  </script>
+
+ <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
+  {% block scripts %}
+  {% endblock scripts %}
+
+</body>
+</html>

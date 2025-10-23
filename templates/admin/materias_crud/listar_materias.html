@@ -1,0 +1,26 @@
+{% extends 'base4.html' %}
+{% load static %}
+
+    {% block content %}
+      <h2 class="mb-4">Matérias</h2>
+      <div class="row">
+        {% for materia in materias %}
+        <div class="col-md-4 mb-3">
+          <a
+            href="{% url 'detalhar_materia' materia.id %}"
+            class="btn btn-outline-secondary w-100 py-3 mb-2"
+          >
+            {{ materia.nome }}
+          </a>
+        </div>
+        {% empty %}
+        <div class="col-12">
+          <p class="text-muted">Nenhuma matéria cadastrada.</p>
+        </div>
+        {% endfor %}
+      </div>
+      <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary mt-4">
+        <img src="{%static 'assets/img/voltar.png'%}" width='20px' height='20px' class="me-2">
+      Voltar
+      </a>
+    {% endblock content %}

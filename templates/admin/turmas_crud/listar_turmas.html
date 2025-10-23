@@ -1,0 +1,23 @@
+{% extends 'base4.html' %}
+{% load static %}
+
+{% block content %}
+  <h2 class="mb-4">Turmas Cadastradas</h2>
+  <div class="row">
+    {% for turma in turmas %}
+      <div class="col-md-3 mb-3">
+        <a href="{% url 'detalhar_turma' turma.id %}" class="btn btn-outline-secondary w-100 py-4">
+          {{ turma.nome }}
+        </a>
+      </div>
+    {% empty %}
+      <p class="text-muted">Nenhuma turma cadastrada.</p>
+    {% endfor %}
+  </div>
+  </div>
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary mt-4">
+      <img src="{%static 'assets/img/voltar.png'%}" width='20px' height='20px' class="me-2">
+      Voltar
+    </a>
+  </div>
+{% endblock content %}

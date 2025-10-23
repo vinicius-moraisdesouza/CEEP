@@ -1,0 +1,263 @@
+{% extends 'base4.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Editando Aluno: {{ aluno.get_full_name }}</h2>
+
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        <strong>Erro ao salvar. Por favor, verifique os campos:</strong>
+        <ul>
+            {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            {% for field in form %}{% for error in field.errors %}
+                <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+            {% endfor %}{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+
+                <h5 class="card-title mb-3 border-bottom pb-2">Dados da Matrícula</h5>
+                <div class="row">
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <label class="form-label">{{ form.curso.label }}</label>
+                        {{ form.curso|add_class:"form-select" }}
+                    </div>
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <label class="form-label">{{ form.ano_modulo.label }}</label>
+                        {{ form.ano_modulo|add_class:"form-select" }}
+                    </div>
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <label class="form-label">{{ form.turno.label }}</label>
+                        {{ form.turno|add_class:"form-select" }}
+                    </div>
+                    <div class="col-md-6 col-lg-3 mb-3">
+                        <label class="form-label">{{ form.turma.label }}</label>
+                        {{ form.turma|add_class:"form-select" }}
+                    </div>
+                </div>
+
+                <h5 class="card-title my-4 border-bottom pb-2">Dados Pessoais</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nome</label>
+                        {{ form.first_name|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Sobrenome</label>
+                        {{ form.last_name|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Data de Nascimento</label>
+                        {{ form.data_nascimento|add_class:"form-control"|attr:"id:id_data_nascimento" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Cidade de Nascimento</label>
+                        {{ form.cidade_nascimento|add_class:"form-control" }}
+                    </div>
+                </div>
+
+                <h5 class="card-title my-4 border-bottom pb-2">Documentação</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">CPF</label>
+                        {{ form.cpf|add_class:"form-control"|attr:"data-mask:000.000.000-00" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">RG</label>
+                        {{ form.rg|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Órgão Expedidor</label>
+                        {{ form.orgao|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Data de Expedição</label>
+                        {{ form.data_expedicao|add_class:"form-control"|attr:"id:id_data_expedicao" }}
+                    </div>
+                </div>
+
+                <h5 class="card-title my-4 border-bottom pb-2">Filiação</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nome da Mãe</label>
+                        {{ form.nome_mae|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nome do Pai</label>
+                        {{ form.nome_pai|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Responsável pela Matrícula</label>
+                        {{ form.responsavel_matricula|add_class:"form-control" }}
+                    </div>
+                </div>
+                
+                <h5 class="card-title my-4 border-bottom pb-2">Endereço e Contato</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Telefone</label>
+                        {{ form.telefone|add_class:"form-control"|attr:"data-mask:(00) 9999[9]-9999" }}
+                    </div>
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">Rua</label>
+                        {{ form.endereco_rua|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Número</label>
+                        {{ form.endereco_numero|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Bairro</label>
+                        {{ form.endereco_bairro|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">CEP</label>
+                        {{ form.endereco_cep|add_class:"form-control"|attr:"data-mask:99999-999" }}
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Cidade</label>
+                        {{ form.endereco_cidade|add_class:"form-control" }}
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="card-footer bg-light text-end">
+                <a href="{% url 'gerenciar_alunos' %}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+{{ block.super }}
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    const cursoSelect = document.getElementById('id_curso');
+    const anoModuloSelect = document.getElementById('id_ano_modulo');
+    const turnoSelect = document.getElementById('id_turno');
+    const turmaSelect = document.getElementById('id_turma');
+    const url = "{% url 'get_opcoes_turma' %}";
+
+    const initialData = {
+        curso: cursoSelect.value,
+        ano_modulo: anoModuloSelect.value,
+        turno: turnoSelect.value,
+        turma: turmaSelect.value
+    };
+
+    function updateDropdown(selectElement, options, selectedValue = null) {
+    selectElement.innerHTML = `<option value="">---------</option>`;
+    if (!options || options.length === 0) {
+        selectElement.disabled = true;
+        return;
+    }
+    options.forEach(option => {
+        const value = typeof option === 'object' ? (option.id || option.value || option) : option;
+        let text = typeof option === 'object' ? (option.turma || option.display || option.ano_modulo || value) : option;
+
+        if (typeof text === 'string' && text === text.toLowerCase()) {
+            text = text.charAt(0).toUpperCase() + text.slice(1);
+        }
+
+        const selected = value == selectedValue ? 'selected' : '';
+        selectElement.innerHTML += `<option value="${value}" ${selected}>${text}</option>`;
+    });
+    selectElement.disabled = false;
+}
+
+    async function fetchOptions(params) {
+        const query = new URLSearchParams(params).toString();
+        const response = await fetch(`${url}?${query}`);
+        if (!response.ok) return null;
+        return await response.json();
+    }
+
+
+    cursoSelect.addEventListener('change', async function() {
+        const cursoId = this.value;
+        anoModuloSelect.innerHTML = '<option value="">Carregando...</option>';
+        turnoSelect.innerHTML = '<option value="">Aguardando...</option>';
+        turmaSelect.innerHTML = '<option value="">Aguardando...</option>';
+        turnoSelect.disabled = turmaSelect.disabled = true;
+
+        if (cursoId) {
+            const data = await fetchOptions({ target: 'ano_modulo', curso_id: cursoId });
+            updateDropdown(anoModuloSelect, data.options);
+        }
+    });
+
+    anoModuloSelect.addEventListener('change', async function() {
+        const cursoId = cursoSelect.value;
+        const ano = this.value;
+        turnoSelect.innerHTML = '<option value="">Carregando...</option>';
+        turmaSelect.innerHTML = '<option value="">Aguardando...</option>';
+        turmaSelect.disabled = true;
+
+        if (cursoId && ano) {
+            const data = await fetchOptions({ target: 'turno', curso_id: cursoId, ano_modulo: ano });
+            updateDropdown(turnoSelect, data.options, null);
+        }
+    });
+
+    turnoSelect.addEventListener('change', async function() {
+        const cursoId = cursoSelect.value;
+        const ano = anoModuloSelect.value;
+        const turno = this.value;
+        turmaSelect.innerHTML = '<option value="">Carregando...</option>';
+        turmaSelect.disabled = true;
+
+        if (cursoId && ano && turno) {
+            const data = await fetchOptions({
+                target: 'turma',
+                curso_id: cursoId,
+                ano_modulo: ano,
+                turno: turno
+            });
+            updateDropdown(turmaSelect, data.options, initialData.turma);
+        }
+    });
+
+    if (initialData.curso) {
+        const anos = await fetchOptions({ target: 'ano_modulo', curso_id: initialData.curso });
+        updateDropdown(anoModuloSelect, anos.options, initialData.ano_modulo);
+
+        if (initialData.ano_modulo) {
+            const turnos = await fetchOptions({
+                target: 'turno',
+                curso_id: initialData.curso,
+                ano_modulo: initialData.ano_modulo
+            });
+            updateDropdown(turnoSelect, turnos.options, initialData.turno);
+        }
+
+        if (initialData.ano_modulo && initialData.turno) {
+            const turmas = await fetchOptions({
+                target: 'turma',
+                curso_id: initialData.curso,
+                ano_modulo: initialData.ano_modulo,
+                turno: initialData.turno
+            });
+            updateDropdown(turmaSelect, turmas.options, initialData.turma);
+        }
+    } else {
+        anoModuloSelect.disabled = turnoSelect.disabled = turmaSelect.disabled = true;
+    }
+});
+</script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="{% static 'js/inputmask.min.js' %}"></script>
+<script src="{% static 'js/cadastro.js' %}"></script>
+
+{% endblock scripts %}

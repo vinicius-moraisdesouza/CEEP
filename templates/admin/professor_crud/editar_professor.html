@@ -1,0 +1,148 @@
+{% extends 'base4.html' %} 
+{% load static %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Editando: {{ professor.get_full_name }}</h2>
+
+    {% if form.errors or formset.errors %}
+    <div class="alert alert-danger">
+        <strong>Erro ao salvar. Por favor, verifique os campos:</strong>
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+
+                <h5 class="card-title mb-3 border-bottom pb-2">Dados Pessoais</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nome</label>
+                        {{ form.first_name|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Sobrenome</label>
+                        {{ form.last_name|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Data de Nascimento</label>
+                        {{ form.data_nascimento|add_class:"form-control"|attr:"id:id_data_nascimento" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Cidade de Nascimento</label>
+                        {{ form.cidade_nascimento|add_class:"form-control" }}
+                    </div>
+                </div>
+
+                <h5 class="card-title my-4 border-bottom pb-2">Documentação</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">CPF</label>
+                        {{ form.cpf|add_class:"form-control"|attr:"data-mask:000.000.000-00" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">RG</label>
+                        {{ form.rg|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Órgão Expedidor</label>
+                        {{ form.orgao|add_class:"form-control"|attr:"placeholder:SSP-" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Data de Expedição</label>
+                        {{ form.data_expedicao|add_class:"form-control"|attr:"id:id_data_expedicao" }}
+                    </div>
+                </div>
+
+                <h5 class="card-title my-4 border-bottom pb-2">Filiação</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nome da Mãe</label>
+                        {{ form.nome_mae|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Nome do Pai</label>
+                        {{ form.nome_pai|add_class:"form-control" }}
+                    </div>
+                </div>
+                
+                <h5 class="card-title my-4 border-bottom pb-2">Endereço e Contato</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Telefone</label>
+                        {{ form.telefone|add_class:"form-control"|attr:"placeholder:(99) 99999-9999" }}
+                    </div>
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">Rua</label>
+                        {{ form.endereco_rua|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Número</label>
+                        {{ form.endereco_numero|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Bairro</label>
+                        {{ form.endereco_bairro|add_class:"form-control" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">CEP</label>
+                        {{ form.endereco_cep|add_class:"form-control"|attr:"placeholder:00000-000" }}
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <label class="form-label">Cidade</label>
+                        {{ form.endereco_cidade|add_class:"form-control" }}
+                    </div>
+                </div>
+
+                <h5 class="card-title my-4 border-bottom pb-2">Vincular Atribuições</h5>
+                {{ formset.management_form }}
+                {% for subform in formset %}
+                    <div class="row gx-3 align-items-center mb-3 p-3 border rounded bg-light">
+                        {{ subform.id }}
+                        <div class="col-md">
+                            <label class="form-label">{{ subform.materia.label }}</label>
+                            {{ subform.materia|add_class:"form-select" }}
+                        </div>
+                        <div class="col-md">
+                            <label class="form-label">{{ subform.curso.label }}</label>
+                            {{ subform.curso|add_class:"form-select" }}
+                        </div>
+                        <div class="col-md">
+                            <label class="form-label">{{ subform.ano_modulo.label }}</label>
+                            {{ subform.ano_modulo|add_class:"form-select" }}
+                        </div>
+                        <div class="col-md">
+                            <label class="form-label">{{ subform.modalidade.label }}</label>
+                            {{ subform.modalidade|add_class:"form-select" }}
+                        </div>
+                        {% if subform.instance.pk %}
+                        <div class="col-md-auto align-self-end mb-2">
+                            <div class="form-check">
+                                {{ subform.DELETE|add_class:"form-check-input" }}
+                                <label class="form-check-label" for="{{ subform.DELETE.id_for_label }}">Remover</label>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+            </div>
+
+            <div class="card-footer bg-light text-end">
+                <a href="{% url 'gerenciar_professores' %}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+    {{ block.super }}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="{% static 'js/inputmask.min.js' %}"></script>
+    <script src="{% static 'js/cadastro.js' %}"></script> {# Reutilizando o JS de máscaras #}
+{% endblock scripts %}

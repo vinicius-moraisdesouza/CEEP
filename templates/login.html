@@ -1,0 +1,107 @@
+{% extends 'base3.html' %}
+ {% load static %}
+
+ 
+
+  <main class="container d-flex align-items-center justify-content-center flex-grow-1">
+    {% block main %}
+    <div class="row justify-content-center align-items-center" style="min-height: 100%;">
+      <div class="col-12" style="max-width: 420px; background-color: rgba(255, 255, 255, 0.9); border-radius: 12px; padding: 30px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+
+        <div class="text-center mb-4">
+          <img src="{% static 'assets/img/ceep.png' %}" alt="Logo CEEP" class="img-fluid" style="max-height: 100px;">
+        </div>
+
+        <h2 class="text-center mb-4">Login</h2>
+
+        <form method="post">
+          {% csrf_token %}
+
+          {% if form.non_field_errors or form.errors %}
+                 <div class="alert alert-danger">\
+                    {% for error in form.non_field_errors %}
+                         {{ error }}
+                    {% endfor %}
+                     {% for field in form %}
+                         {% for error in field.errors %}
+                            {{ error }}
+                            {% endfor %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+          <div class="mb-3">
+            <label for="{{ form.username.id_for_label }}" class="form-label">Usuário</label>
+            <input type="username" class="form-control form-control-lg" id="username" name="username" required>
+            {% for error in form.username.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-4">
+            <label for="password" class="form-label">Senha</label>
+            <div class="input-group input-group-lg">
+              <input type="password" class="form-control" id="password" name="password" required>
+              <button id="togglePasswordButton" class="btn btn-outline-secondary" type="button">
+                <img id="togglePasswordIcon"
+                  src="{% static 'assets/img/senha_oculta.png' %}"
+                  data-show="{% static 'assets/img/senha_mostra.png' %}"
+                  data-hide="{% static 'assets/img/senha_oculta.png' %}"
+                  alt="Alternar Senha" style="width: 24px; height: 24px;">
+              </button>
+            </div>
+            {% for error in form.password.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-secondary btn-lg">Entrar</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+    {% endblock main %}
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const faviconLink = document.getElementById('faviconLink');
+      const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+
+      function updateFavicon(e) {
+        faviconLink.href = e.matches
+          ? "{% static 'assets/icon/icone_branco.ico' %}"
+          : "{% static 'assets/icon/icone_preto.ico' %}";
+      }
+
+      updateFavicon(prefersDarkScheme);
+      prefersDarkScheme.addEventListener('change', updateFavicon);
+    });
+  </script>
+
+  <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+
+  {% block scripts %}
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const passwordInput = document.getElementById("password");
+    const toggleButton = document.getElementById("togglePasswordButton");
+    const toggleIcon = document.getElementById("togglePasswordIcon");
+
+    if (passwordInput && toggleButton && toggleIcon) {
+      toggleButton.addEventListener("click", function () {
+        const isPassword = passwordInput.type === "password";
+        passwordInput.type = isPassword ? "text" : "password";
+        toggleIcon.src = isPassword
+          ? toggleIcon.dataset.show
+          : toggleIcon.dataset.hide;
+      });
+    }
+  });
+  </script>
+  {% endblock scripts %}
+
+</body>
+</html>
