@@ -69,17 +69,20 @@ class AlunoCreateForm(forms.ModelForm):
     ano_modulo = forms.ChoiceField(
         label="2. Escolha o Ano/Módulo",
         choices=[('', '---------')], 
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=True
     )
     turno = forms.ChoiceField(
         label="3. Escolha o Turno",
         choices=[('', '---------')], 
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=True
     )
     turma = forms.ModelChoiceField(
         queryset=Turma.objects.none(), 
         label="4. Escolha a Turma",
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        required=True
     )
 
     class Meta:
@@ -90,33 +93,49 @@ class AlunoCreateForm(forms.ModelForm):
             'rg', 'orgao', 'data_expedicao', 'cpf',
             'nome_pai', 'nome_mae', 'responsavel_matricula',
             'endereco_rua', 'endereco_numero', 'endereco_bairro',
-            'endereco_cidade', 'endereco_cep', 'telefone',
+            'endereco_cidade', 'endereco_cep', 'telefone', 'email',
         ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        # Define que o texto exibido no dropdown 'turma' será o nome curto
+        self.fields['turma'].label_from_instance = lambda obj: obj.nome_curto
+
+        # Lógica para repopular os 'choices' quando um formulário com erros é submetido (POST)
+        if 'curso' in self.data:
+            try:
+                curso_id = int(self.data.get('curso'))
+                self.fields['ano_modulo'].choices = [('', '---------')] + list(Turma.objects.filter(curso_id=curso_id).order_by('ano_modulo').values_list('ano_modulo', 'ano_modulo').distinct())
+                
+                if 'ano_modulo' in self.data:
+                    ano_modulo_val = self.data.get('ano_modulo')
+                    self.fields['turno'].choices = [('', '---------')] + list(Turma.objects.filter(curso_id=curso_id, ano_modulo=ano_modulo_val).values_list('turno', 'turno').distinct())
+                    
+                    if 'turno' in self.data:
+                        turno_val = self.data.get('turno')
+                        self.fields['turma'].queryset = Turma.objects.filter(curso_id=curso_id, ano_modulo=ano_modulo_val, turno=turno_val).order_by('turma')
+            except (ValueError, TypeError):
+                pass  # Ignora erros se os dados forem inválidos
+        # Lógica para preencher os campos na tela de EDIÇÃO (GET)
         if self.instance and self.instance.pk:
             try:
-                aluno_turma = self.instance.alunoturma_set.first()
-                if aluno_turma:
-                    turma_atual = aluno_turma.turma
-                    
+                turma_atual = self.instance.alunoturma_set.first().turma
+                if turma_atual:
                     self.fields['curso'].initial = turma_atual.curso
                     
                     anos_queryset = Turma.objects.filter(curso=turma_atual.curso).values_list('ano_modulo', 'ano_modulo').distinct()
                     self.fields['ano_modulo'].choices = [('', '---------')] + list(anos_queryset)
                     self.fields['ano_modulo'].initial = turma_atual.ano_modulo
                     
-                    turnos_queryset = Turma.objects.filter(curso=turma_atual.curso, ano_modulo=turma_atual.ano_modulo).values_list('turno', 'turno').distinct()
-                    self.fields['turno'].choices = [('', '---------')] + list(turnos_queryset)
+                    turnos_queryset = Turma.objects.filter(curso=turma_atual.curso, ano_modulo=turma_atual.ano_modulo).values_list('turno', flat=True).distinct()
+                    self.fields['turno'].choices = [('', '---------')] + [(v, d) for v, d in Turma.TURNO_CHOICES if v in turnos_queryset]
                     self.fields['turno'].initial = turma_atual.turno
                     
-                    self.fields['turma'].queryset = Turma.objects.filter(curso=turma_atual.curso, ano_modulo=turma_atual.ano_modulo, turno=turma_atual.turno)
+                    self.fields['turma'].queryset = Turma.objects.filter(pk=turma_atual.pk)
                     self.fields['turma'].initial = turma_atual
-
-            except Exception:
-                pass 
+            except (AttributeError, Exception):
+                pass
 
     def clean_cpf(self):
         cpf = self.cleaned_data.get('cpf', '')

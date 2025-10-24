@@ -36,15 +36,15 @@
                     </div>
                     <div class="col-md-6 col-lg-3 mb-3">
                         <label class="form-label">{{ form.ano_modulo.label }}</label>
-                        {{ form.ano_modulo|add_class:"form-select"|attr:"disabled" }}
+                        {{ form.ano_modulo|add_class:"form-select" }}
                     </div>
                     <div class="col-md-6 col-lg-3 mb-3">
                         <label class="form-label">{{ form.turno.label }}</label>
-                        {{ form.turno|add_class:"form-select"|attr:"disabled" }}
+                        {{ form.turno|add_class:"form-select" }}
                     </div>
                     <div class="col-md-6 col-lg-3 mb-3">
                         <label class="form-label">{{ form.turma.label }}</label>
-                        {{ form.turma|add_class:"form-select"|attr:"disabled" }}
+                        {{ form.turma|add_class:"form-select" }}
                     </div>
                 </div>
 
@@ -157,16 +157,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Mostra os valores antes de enviar o formulário
     form.addEventListener('submit', function(event) {
-        console.clear();
-        console.log('🧾 Valores do formulário sendo enviados:');
-        console.log('Curso:', cursoSelect.value);
-        console.log('Ano/Módulo:', anoModuloSelect.value);
-        console.log('Turno:', turnoSelect.value);
-        console.log('Turma:', turmaSelect.value);
-
-        // Descomente abaixo para testar sem enviar:
-        // event.preventDefault();
-    });
+    console.clear();
+    console.log('🧾 Valores do formulário sendo enviados:');
+    console.log('Curso:', cursoSelect.value);
+    console.log('Ano/Módulo:', anoModuloSelect.value);
+    console.log('Turno:', turnoSelect.value);
+    console.log('Turma:', turmaSelect.value);
+    // event.preventDefault(); // descomente para testar
+});
 
     function resetAndDisable(selectElement, placeholder) {
         selectElement.innerHTML = `<option value="">${placeholder}</option>`;
@@ -174,21 +172,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateDropdown(selectElement, options) {
-        selectElement.innerHTML = `<option value="">---------</option>`;
-        options.forEach(option => {
-            const optionValue = option.id || option.value || option;
-            let optionText = option.display || option.turma || option.ano_modulo || optionValue;
+    // Limpa e adiciona o placeholder
+    selectElement.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '---------';
+    selectElement.appendChild(placeholder);
 
-            // Corrige aparência (Matutino, Vespertino, etc.)
-            if (typeof optionText === 'string' && optionText === optionText.toLowerCase()) {
-                optionText = optionText.charAt(0).toUpperCase() + optionText.slice(1);
-            }
+    // Adiciona as opções reais
+    options.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option.id || option.value || option; // Valor real
+        opt.textContent = option.display || option.turma || option.ano_modulo || opt.value; // Texto visível
+        selectElement.appendChild(opt);
+    });
 
-            // Valor real é o id, texto é o display
-            selectElement.innerHTML += `<option value="${optionValue}">${optionText}</option>`;
-        });
-        selectElement.disabled = false;
-    }
+    selectElement.disabled = false;
+}
 
     // Evento: curso alterado
     cursoSelect.addEventListener('change', function() {

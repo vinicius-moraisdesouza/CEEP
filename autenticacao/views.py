@@ -143,7 +143,8 @@ def aluno_dashboard_view(request):
 @login_required
 @role_required('admin')
 def gerenciar_professores(request):
-    professores = CustomUser.objects.filter(tipo='professor')
+    # ORDENAÇÃO: Ordena pelo nome e sobrenome
+    professores = CustomUser.objects.filter(tipo='professor').order_by('first_name', 'last_name') 
     return render(request, 'admin/professor_crud/gerenciar_professores.html', {'professores': professores})
 
 
@@ -238,7 +239,8 @@ def remover_professor(request, professor_id):
 @login_required
 @role_required('admin')
 def gerenciar_alunos(request):
-    alunos = CustomUser.objects.filter(tipo='aluno').prefetch_related('alunoturma_set__turma')
+    # ORDENAÇÃO: Ordena pelo nome e sobrenome
+    alunos = CustomUser.objects.filter(tipo='aluno').prefetch_related('alunoturma_set__turma').order_by('first_name', 'last_name')
     return render(request, 'admin/aluno_crud/gerenciar_alunos.html', {'alunos': alunos})
 
 
@@ -246,18 +248,32 @@ def gerenciar_alunos(request):
 @role_required('admin')
 def cadastrar_aluno(request):
     if request.method == 'POST':
+        # ==========================================================
+        # <<< BLOCO DE PRINT PARA DEBUG (ADICIONADO DE VOLTA) >>>
+        # ==========================================================
+        print("="*30)
+        print("🧾 DADOS RECEBIDOS DO FORMULÁRIO (NO BACKEND):")
+        print(f"Curso ID: {request.POST.get('curso')}")
+        print(f"Ano/Módulo: {request.POST.get('ano_modulo')}")
+        print(f"Turno: {request.POST.get('turno')}")
+        print(f"Turma ID: {request.POST.get('turma')}")
+        print("="*30)
+        # ==========================================================
+
         form = AlunoCreateForm(request.POST)
         if form.is_valid():
-
             form.save()
-            
             messages.success(request, "Aluno cadastrado com sucesso.")
             return redirect('gerenciar_alunos')
         else:
+            # Também é útil imprimir os erros do formulário para debug
+            print("\n⚠️ ERROS DE VALIDAÇÃO DO FORMULÁRIO:")
+            print(form.errors.as_json())
+            print("-" * 30 + "\n")
             messages.error(request, "Erro ao salvar. Verifique os campos.")
     else:
         form = AlunoCreateForm()
-
+        
     return render(request, 'admin/aluno_crud/cadastrar_aluno.html', {'form': form})
 
 
@@ -267,6 +283,13 @@ def editar_aluno(request, aluno_id):
     aluno = get_object_or_404(CustomUser, id=aluno_id, tipo='aluno')
     
     if request.method == 'POST':
+        print("="*30)
+        print("🧾 DADOS RECEBIDOS DO FORMULÁRIO (NO BACKEND):")
+        print(f"Curso ID: {request.POST.get('curso')}")
+        print(f"Ano/Módulo: {request.POST.get('ano_modulo')}")
+        print(f"Turno: {request.POST.get('turno')}")
+        print(f"Turma ID: {request.POST.get('turma')}")
+        print("="*30)
         form = AlunoCreateForm(request.POST, instance=aluno)
         if form.is_valid():
             form.save() 
@@ -303,7 +326,8 @@ def ver_detalhes_aluno(request, aluno_id):
 @login_required
 @role_required('admin')
 def gerenciar_servidores(request):
-    servidores = CustomUser.objects.filter(tipo='servidor')
+    # Adicionamos .order_by('first_name', 'last_name') para ordenar pelo nome e sobrenome
+    servidores = CustomUser.objects.filter(tipo='servidor').order_by('first_name', 'last_name')
     return render(request, 'admin/servidor_crud/gerenciar_servidores.html', {'servidores': servidores})
 
 @login_required
@@ -313,7 +337,10 @@ def cadastrar_servidor(request):
         form = ServidorCreateForm(request.POST)
         if form.is_valid():
             servidor = form.save(commit=False)
-            servidor.tipo = 'servidor'
+    
+    # ✅ CORREÇÃO: Pega o tipo escolhido do formulário
+            tipo_escolhido = form.cleaned_data['tipo_usuario']
+            servidor.tipo = tipo_escolhido 
             servidor.username = servidor.cpf
             servidor.email = f"{servidor.cpf}@servidor.com"
             servidor.set_password("Senha123#")
@@ -395,57 +422,38 @@ def get_opcoes_turma(request):
 
     queryset = Turma.objects.all()
 
-    if curso_id:
-        queryset = queryset.filter(curso_id=curso_id)
-    if ano_modulo:
-        queryset = queryset.filter(ano_modulo=ano_modulo)
-    if turno:
-        queryset = queryset.filter(turno=turno)
+    if curso_id: queryset = queryset.filter(curso_id=curso_id)
+    if ano_modulo: queryset = queryset.filter(ano_modulo=ano_modulo)
+    if turno: queryset = queryset.filter(turno=turno)
 
-    # 1️⃣ Opções de Ano/Módulo
     if target == 'ano_modulo':
-        opcoes = (
-            queryset.order_by('ano_modulo')
-            .values_list('ano_modulo', flat=True)
-            .distinct()
-        )
-        data = [{'id': o, 'ano_modulo': o} for o in opcoes]
+        data = list(queryset.order_by('ano_modulo').values_list('ano_modulo', flat=True).distinct())
         return JsonResponse({'options': data})
 
-    # 2️⃣ Opções de Turno (com lógica para exibir Noturno apenas se houver)
     if target == 'turno':
-        turnos_disponiveis = (
-            queryset.order_by('turno')
-            .values_list('turno', 'modalidade')
-            .distinct()
-        )
-
-        traducao_turnos = dict(Turma.TURNO_CHOICES)
+        turnos_existentes = list(queryset.values_list('turno', flat=True).distinct())
         data = []
-
-        for t, modalidade in turnos_disponiveis:
-            # Mostra noturno apenas se modalidade for Subsequente ou PROEJA
-            if t == 'noturno' and modalidade not in ('Subsequente', 'PROEJA'):
-                continue
-            display = traducao_turnos.get(t, t.capitalize())
-            data.append({'id': t, 'display': display})
-
-        # Garante que Matutino e Vespertino sempre apareçam se existirem turmas desses tipos
-        data = sorted(data, key=lambda d: ['matutino', 'vespertino', 'noturno'].index(d['id']))
-
+        for valor, display in Turma.TURNO_CHOICES:
+            if valor in turnos_existentes:
+                data.append({'value': valor, 'display': display})
         return JsonResponse({'options': data})
 
-    # 3️⃣ Opções de Turma
     if target == 'turma':
-        opcoes = list(queryset.order_by('turma').values('id', 'turma'))
-        if not any(o['turma'] for o in opcoes):
-            opcoes = list(queryset.values('id', 'ano_modulo'))
-            for item in opcoes:
-                item['turma'] = item.pop('ano_modulo')
-        return JsonResponse({'options': opcoes})
+        data = []
+        for turma_obj in queryset.order_by('turma'):
+            data.append({'id': turma_obj.id, 'display': turma_obj.nome_curto})
+        return JsonResponse({'options': data})
 
     return JsonResponse({}, status=400)
 
+def debug_log(request):
+    print("\n===== DEBUG RECEBIDO DO FRONT =====")
+    print("Curso:", request.GET.get('curso'))
+    print("Ano/Módulo:", request.GET.get('ano_modulo'))
+    print("Turno:", request.GET.get('turno'))
+    print("Turma:", request.GET.get('turma'))
+    print("===================================\n")
+    return JsonResponse({'status': 'ok'})
 
 # === ADMIN - TURMAS ===
 

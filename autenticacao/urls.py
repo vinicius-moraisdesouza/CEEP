@@ -45,6 +45,7 @@ urlpatterns = [
     
     # Rota de API
     path('api/get-opcoes-turma/', views.get_opcoes_turma, name='get_opcoes_turma'),
+    path('debug-log/', views.debug_log, name='debug_log'),
     
     # ADMIN - Materias
     path('admin/materias_crud/materias/<int:materia_id>/', views.detalhar_materia, name='detalhar_materia'),

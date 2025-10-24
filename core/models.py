@@ -115,6 +115,11 @@ class Turma(models.Model):
     def __str__(self):
         turma_display = self.turma if self.turma else "-"
         return f"{self.ano_modulo} - {self.curso.nome} ({self.turno.upper()}) {turma_display} - {self.modalidade or ''}".strip()
+    
+    @property
+    def nome_curto(self):
+        """ Retorna um nome mais limpo para a turma (ex: M1, V1, ou o nome do módulo). """
+        return self.turma or self.ano_modulo
 
 
 class Materia(models.Model):

@@ -142,117 +142,153 @@
 {{ block.super }}
 
 <script>
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('form');
     const cursoSelect = document.getElementById('id_curso');
     const anoModuloSelect = document.getElementById('id_ano_modulo');
     const turnoSelect = document.getElementById('id_turno');
     const turmaSelect = document.getElementById('id_turma');
     const url = "{% url 'get_opcoes_turma' %}";
 
-    const initialData = {
-        curso: cursoSelect.value,
-        ano_modulo: anoModuloSelect.value,
-        turno: turnoSelect.value,
-        turma: turmaSelect.value
-    };
-
-    function updateDropdown(selectElement, options, selectedValue = null) {
-    selectElement.innerHTML = `<option value="">---------</option>`;
-    if (!options || options.length === 0) {
-        selectElement.disabled = true;
-        return;
-    }
-    options.forEach(option => {
-        const value = typeof option === 'object' ? (option.id || option.value || option) : option;
-        let text = typeof option === 'object' ? (option.turma || option.display || option.ano_modulo || value) : option;
-
-        if (typeof text === 'string' && text === text.toLowerCase()) {
-            text = text.charAt(0).toUpperCase() + text.slice(1);
-        }
-
-        const selected = value == selectedValue ? 'selected' : '';
-        selectElement.innerHTML += `<option value="${value}" ${selected}>${text}</option>`;
+    // 🧾 Mostra valores ao enviar o formulário
+    form.addEventListener('submit', function (event) {
+        console.clear();
+        console.log('🧾 Valores do formulário sendo enviados:');
+        console.log('Curso:', cursoSelect.value);
+        console.log('Ano/Módulo:', anoModuloSelect.value);
+        console.log('Turno:', turnoSelect.value);
+        console.log('Turma:', turmaSelect.value);
+        // event.preventDefault(); // descomente para testar
     });
-    selectElement.disabled = false;
-}
 
-    async function fetchOptions(params) {
-        const query = new URLSearchParams(params).toString();
-        const response = await fetch(`${url}?${query}`);
-        if (!response.ok) return null;
-        return await response.json();
+    // 🔧 Atualiza dropdowns dinamicamente
+    function updateDropdown(selectElement, options) {
+        const currentValue = selectElement.value;
+        selectElement.innerHTML = '<option value="">---------</option>';
+
+        options.forEach(option => {
+            const opt = document.createElement('option');
+            const optionValue = option.id || option.value || option;
+            let optionText = option.display || option.turma || option.ano_modulo || optionValue;
+
+            if (typeof optionText === 'string' && optionText === optionText.toLowerCase()) {
+                optionText = optionText.charAt(0).toUpperCase() + optionText.slice(1);
+            }
+
+            opt.value = optionValue;
+            opt.textContent = optionText;
+
+            if (String(opt.value) === String(currentValue)) {
+                opt.selected = true;
+            }
+
+            selectElement.appendChild(opt);
+        });
+
+        selectElement.disabled = false;
     }
 
+    // ==========================================================
+    // <<< EVENTOS DE MUDANÇA (idênticos ao cadastro) >>>
+    // ==========================================================
 
-    cursoSelect.addEventListener('change', async function() {
+    // 1️⃣ Quando o CURSO é alterado
+    cursoSelect.addEventListener('change', function () {
         const cursoId = this.value;
+        let anoValue = anoModuloSelect.value;
+
         anoModuloSelect.innerHTML = '<option value="">Carregando...</option>';
         turnoSelect.innerHTML = '<option value="">Aguardando...</option>';
         turmaSelect.innerHTML = '<option value="">Aguardando...</option>';
-        turnoSelect.disabled = turmaSelect.disabled = true;
+        turnoSelect.disabled = true;
+        turmaSelect.disabled = true;
 
         if (cursoId) {
-            const data = await fetchOptions({ target: 'ano_modulo', curso_id: cursoId });
-            updateDropdown(anoModuloSelect, data.options);
+            fetch(`${url}?target=ano_modulo&curso_id=${cursoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateDropdown(anoModuloSelect, data.options);
+                    anoModuloSelect.value = anoValue;
+
+                    if (anoModuloSelect.value) {
+                        anoModuloSelect.dispatchEvent(new Event('change'));
+                    }
+                });
         }
     });
 
-    anoModuloSelect.addEventListener('change', async function() {
+    // 2️⃣ Quando o ANO/MÓDULO é alterado
+    anoModuloSelect.addEventListener('change', function () {
         const cursoId = cursoSelect.value;
-        const ano = this.value;
+        const anoModulo = this.value;
+        let turnoValue = turnoSelect.value;
+
         turnoSelect.innerHTML = '<option value="">Carregando...</option>';
         turmaSelect.innerHTML = '<option value="">Aguardando...</option>';
         turmaSelect.disabled = true;
 
-        if (cursoId && ano) {
-            const data = await fetchOptions({ target: 'turno', curso_id: cursoId, ano_modulo: ano });
-            updateDropdown(turnoSelect, data.options, null);
+        if (cursoId && anoModulo) {
+            fetch(`${url}?target=turno&curso_id=${cursoId}&ano_modulo=${anoModulo}`)
+                .then(response => response.json())
+                .then(data => {
+                    const options = data.options.map((value, index) => ({
+                        value: value,
+                        display: data.options_display ? data.options_display[index] : value
+                    }));
+
+                    updateDropdown(turnoSelect, options);
+
+                    setTimeout(() => {
+                        turnoSelect.value = turnoValue;
+                        if (turnoSelect.value) {
+                            turnoSelect.dispatchEvent(new Event('change'));
+                        }
+                    }, 100);
+                });
         }
     });
 
-    turnoSelect.addEventListener('change', async function() {
+    // 3️⃣ Quando o TURNO é alterado
+    turnoSelect.addEventListener('change', function () {
         const cursoId = cursoSelect.value;
-        const ano = anoModuloSelect.value;
+        const anoModulo = anoModuloSelect.value;
         const turno = this.value;
+        let turmaValue = turmaSelect.value;
+
         turmaSelect.innerHTML = '<option value="">Carregando...</option>';
         turmaSelect.disabled = true;
 
-        if (cursoId && ano && turno) {
-            const data = await fetchOptions({
-                target: 'turma',
-                curso_id: cursoId,
-                ano_modulo: ano,
-                turno: turno
-            });
-            updateDropdown(turmaSelect, data.options, initialData.turma);
+        if (cursoId && anoModulo && turno) {
+            fetch(`${url}?target=turma&curso_id=${cursoId}&ano_modulo=${anoModulo}&turno=${turno}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateDropdown(turmaSelect, data.options);
+                    turmaSelect.value = turmaValue;
+                });
         }
     });
 
-    if (initialData.curso) {
-        const anos = await fetchOptions({ target: 'ano_modulo', curso_id: initialData.curso });
-        updateDropdown(anoModuloSelect, anos.options, initialData.ano_modulo);
-
-        if (initialData.ano_modulo) {
-            const turnos = await fetchOptions({
-                target: 'turno',
-                curso_id: initialData.curso,
-                ano_modulo: initialData.ano_modulo
-            });
-            updateDropdown(turnoSelect, turnos.options, initialData.turno);
+    // ==========================================================
+    // <<< CORREÇÃO PARA A PÁGINA DE EDIÇÃO >>>
+    // ==========================================================
+    function dispararSequencia() {
+        if (cursoSelect.value) {
+            cursoSelect.dispatchEvent(new Event('change'));
+            setTimeout(() => {
+                if (anoModuloSelect.value) {
+                    anoModuloSelect.dispatchEvent(new Event('change'));
+                    setTimeout(() => {
+                        if (turnoSelect.value) {
+                            turnoSelect.dispatchEvent(new Event('change'));
+                        }
+                    }, 400);
+                }
+            }, 400);
         }
-
-        if (initialData.ano_modulo && initialData.turno) {
-            const turmas = await fetchOptions({
-                target: 'turma',
-                curso_id: initialData.curso,
-                ano_modulo: initialData.ano_modulo,
-                turno: initialData.turno
-            });
-            updateDropdown(turmaSelect, turmas.options, initialData.turma);
-        }
-    } else {
-        anoModuloSelect.disabled = turnoSelect.disabled = turmaSelect.disabled = true;
     }
+
+    // Executa a sequência ao carregar a página
+    dispararSequencia();
 });
 </script>
 

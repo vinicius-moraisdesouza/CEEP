@@ -28,94 +28,102 @@
                     <div class="px-4 pb-4">
                         
                         <h5 class="mb-2 text-secondary border-bottom pb-2">Dados Pessoais e Documentação</h5>
-                        <div class="row g-2 mb-3">
+                        <div class="row g-2 mb-3"> 
                             
                             <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    
-                                    <dt class="col-sm-3 fw-bold text-dark">CPF:</dt>
-                                    {% if aluno.cpf %}
+                                
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">CPF:</strong>
+                                    <span>
                                         {% with cpf=aluno.cpf %}
-                                            <dd class="col-sm-9">{{ cpf|slice:":3" }}.{{ cpf|slice:"3:6" }}.{{ cpf|slice:"6:9" }}-{{ cpf|slice:"9:" }}</dd>
+                                            {{ cpf|slice:":3" }}.{{ cpf|slice:"3:6" }}.{{ cpf|slice:"6:9" }}-{{ cpf|slice:"9:" }}
                                         {% endwith %}
-                                    {% else %}
-                                        <dd class="col-sm-9 text-muted">Não informado</dd>
-                                    {% endif %}
-    
-                                    <dt class="col-sm-3 fw-bold text-dark">RG:</dt>
-                                    {% if aluno.rg %}
+                                    </span>
+                                </div>
+            
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">RG:</strong>
+                                    <span>
                                         {% with rg=aluno.rg %}
-                                            <dd class="col-sm-9">{{ rg|slice:":2" }}.{{ rg|slice:"2:5" }}.{{ rg|slice:"5:8" }}-{{ rg|slice:"8:" }}</dd>
+                                            {{ rg|slice:":2" }}.{{ rg|slice:"2:5" }}.{{ rg|slice:"5:8" }}-{{ rg|slice:"8:" }}
                                         {% endwith %}
-                                    {% else %}
-                                        <dd class="col-sm-9 text-muted">Não informado</dd>
-                                    {% endif %}
-    
-                                    <dt class="col-sm-3 fw-bold text-dark">Orgão Expedidor:</dt>
-                                    <dd class="col-sm-9">{{ aluno.orgao|default:"Não informado" }}</dd>
-                                </dl>
+                                    </span>
+                                </div>
+            
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Orgão Expedidor:</strong>
+                                    <span>{{ aluno.orgao|default:"Não informado" }}</span>
+                                </div>
                             </div>
 
                             <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-6 fw-bold text-dark">Data de Expedidor:</dt>
-                                    <dd class="col-sm-6">{{ aluno.data_expedicao|date:"d/m/Y"|default:"Não informada" }}</dd>
+                                
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Data de Expedição:</strong>
+                                    <span>{{ aluno.data_expedicao|date:"d/m/Y"|default:"Não informada" }}</span>
+                                </div>
 
-                                    <dt class="col-sm-6 fw-bold text-dark">Data de Nascimento:</dt>
-                                    <dd class="col-sm-6">{{ aluno.data_nascimento|date:"d/m/Y"|default:"Não informada" }}</dd>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Data de Nascimento:</strong>
+                                    <span>{{ aluno.data_nascimento|date:"d/m/Y"|default:"Não informada" }}</span>
+                                </div>
 
-                                    <dt class="col-sm-6 fw-bold text-dark">Cidade de Nascimento:</dt>
-                                    <dd class="col-sm-6">{{ aluno.cidade_nascimento|default:"Não informada" }}</dd>
-                                </dl>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Cidade de Nascimento:</strong>
+                                    <span>{{ aluno.cidade_nascimento|default:"Não informada" }}</span>
+                                </div>
                             </div>
                         </div>
 
                         <h5 class="mb-2 text-secondary border-bottom pb-2 mt-3">Filiação e Responsável</h5>
                         <div class="row g-2 mb-3">
                             <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-3 fw-bold text-dark">Nome da Mãe:</dt>
-                                    <dd class="col-sm-9">{{ aluno.nome_mae|default:"Não informado" }}</dd>
-                                </dl>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Nome da Mãe:</strong>
+                                    <span>{{ aluno.nome_mae|default:"Não informado" }}</span>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-3 fw-bold text-dark">Nome do Pai:</dt>
-                                    <dd class="col-sm-9">{{ aluno.nome_pai|default:"Não informado" }}</dd>
-                                </dl>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Nome do Pai:</strong>
+                                    <span>{{ aluno.nome_pai|default:"Não informado" }}</span>
+                                </div>
                             </div>
                             <div class="col-md-12">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-3 fw-bold text-dark">Responsável Matrícula:</dt>
-                                    <dd class="col-sm-9">{{ aluno.responsavel_matricula|default:"Não informado" }}</dd>
-                                </dl>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Responsável Pela Matrícula:</strong>
+                                    <span>{{ aluno.responsavel_matricula|default:"Não informado" }}</span>
+                                </div>
                             </div>
                         </div>
 
                         <h5 class="mb-2 text-secondary border-bottom pb-2 mt-3">Endereço e Contato</h5>
                         <div class="row g-2 mb-3">
-                            
                             <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-4 fw-bold text-dark">Telefone:</dt>
-                                    <dd class="col-sm-8">{{ aluno.telefone|default:"Não informado" }}</dd>
-                                </dl>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Telefone:</strong>
+                                    <span>{{ aluno.telefone|default:"Não informado" }}</span>
+                                </div>
                             </div>
 
                             <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-4 fw-bold text-dark">Endereço:</dt>
-                                    <dd class="col-sm-8">Rua {{ aluno.endereco_rua|default:"-" }}, Nº {{ aluno.endereco_numero|default:"-" }}</dd>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Endereço:</strong>
+                                    <span>Rua {{ aluno.endereco_rua|default:"-" }}, Nº {{ aluno.endereco_numero|default:"-" }}</span>
+                                </div>
 
-                                    <dt class="col-sm-4 fw-bold text-dark">Bairro:</dt>
-                                    <dd class="col-sm-8">{{ aluno.endereco_bairro|default:"-" }}</dd>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Bairro:</strong>
+                                    <span>{{ aluno.endereco_bairro|default:"-" }}</span>
+                                </div>
 
-                                    <dt class="col-sm-4 fw-bold text-dark">Cidade/CEP:</dt>
-                                    <dd class="col-sm-8">{{ aluno.endereco_cidade|default:"-" }} / {{ aluno.endereco_cep|default:"-" }}</dd>
-                                </dl>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Cidade/CEP:</strong>
+                                    <span>{{ aluno.endereco_cidade|default:"-" }} / {{ aluno.endereco_cep|default:"-" }}</span>
+                                </div>
                             </div>
                         </div>
-
+                        
                         <h5 class="mb-2 text-secondary border-bottom pb-2 mt-3">Turma Atual</h5>
                         
                         <div class="card card-body shadow-sm p-0 border-secondary">

@@ -6,7 +6,8 @@
     <div class="row justify-content-center">
         <div class="col-lg-10 col-md-12">
             
-            <div class="d-flex justify-content-between align-items-center mb-3"> <h2 class="mb-0 text-dark">Detalhes do Servidor</h2>
+            <div class="d-flex justify-content-between align-items-center mb-3"> 
+                <h2 class="mb-0 text-dark">Detalhes do Servidor</h2>
                 <a href="{% url 'gerenciar_servidores' %}" class="btn btn-secondary">
                     <img src="{% static 'assets/img/voltar.png' %}" width='20px' height='20px' class="me-2">
                     Voltar para Lista
@@ -16,7 +17,8 @@
             <div class="card p-0 shadow-lg border-0">
                 <div class="card-body p-0">
                     
-                    <div class="bg-secondary text-white p-3 mb-3 d-flex justify-content-between align-items-start rounded-top"> <div>
+                    <div class="bg-secondary text-white p-3 mb-3 d-flex justify-content-between align-items-start rounded-top"> 
+                        <div>
                             <h4 class="mb-0 text-white">{{ servidor.get_full_name }}</h4>
                             <p class="mb-0 mt-1">
                                 {% if servidor.tipo == 'diretor' %}
@@ -38,76 +40,110 @@
 
                     <div class="px-4 pb-4">
                         
-                        <h5 class="mb-2 text-secondary border-bottom pb-2">Dados Pessoais e Documentação</h5> <div class="row g-2 mb-3"> <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    
-                                    <dt class="col-sm-3 fw-bold text-dark">CPF:</dt>
-                                    {% if servidor.cpf %}
-                                        {% with cpf=servidor.cpf %}
-                                            <dd class="col-sm-9">{{ cpf|slice:":3" }}.{{ cpf|slice:"3:6" }}.{{ cpf|slice:"6:9" }}-{{ cpf|slice:"9:" }}</dd> {% endwith %}
-                                    {% else %}
-                                        <dd class="col-sm-9 text-muted">Não informado</dd>
-                                    {% endif %}
+                        <h5 class="mb-2 text-secondary border-bottom pb-2">Dados Pessoais e Documentação</h5> 
+                        <div class="row g-2 mb-3"> 
+                            
+                            <div class="col-md-6">
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">CPF:</strong>
+                                    <span>
+                                        {% if servidor.cpf %}
+                                            {% with cpf=servidor.cpf %}
+                                                {{ cpf|slice:":3" }}.{{ cpf|slice:"3:6" }}.{{ cpf|slice:"6:9" }}-{{ cpf|slice:"9:" }}
+                                            {% endwith %}
+                                        {% else %}
+                                            <span class="text-muted">Não informado</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
 
-                                    <dt class="col-sm-3 fw-bold text-dark">RG:</dt>
-                                    {% if servidor.rg %}
-                                        {% with rg=servidor.rg %}
-                                            <dd class="col-sm-9">{{ rg|slice:":2" }}.{{ rg|slice:"2:5" }}.{{ rg|slice:"5:8" }}-{{ rg|slice:"8:" }}</dd> {% endwith %}
-                                    {% else %}
-                                        <dd class="col-sm-9 text-muted">Não informado</dd>
-                                    {% endif %}
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">RG:</strong>
+                                    <span>
+                                        {% if servidor.rg %}
+                                            {% with rg=servidor.rg %}
+                                                {{ rg|slice:":2" }}.{{ rg|slice:"2:5" }}.{{ rg|slice:"5:8" }}-{{ rg|slice:"8:" }}
+                                            {% endwith %}
+                                        {% else %}
+                                            <span class="text-muted">Não informado</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
 
-                                    <dt class="col-sm-3 fw-bold text-dark">Orgão Expedidor:</dt>
-                                    <dd class="col-sm-9">{{ servidor.orgao|default:"Não informado" }}</dd> </dl>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Orgão Expedidor:</strong>
+                                    <span>{{ servidor.orgao|default:"Não informado" }}</span>
+                                </div>
                             </div>
 
                             <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-6 fw-bold text-dark">Data de Expedição:</dt>
-                                    <dd class="col-sm-6">{{ servidor.data_expedicao|date:"d/m/Y"|default:"Não informada" }}</dd>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Data de Expedição:</strong>
+                                    <span>{{ servidor.data_expedicao|date:"d/m/Y"|default:"Não informada" }}</span>
+                                </div>
 
-                                    <dt class="col-sm-6 fw-bold text-dark">Data de Nascimento:</dt>
-                                    <dd class="col-sm-6">{{ servidor.data_nascimento|date:"d/m/Y"|default:"Não informada" }}</dd>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Data de Nascimento:</strong>
+                                    <span>{{ servidor.data_nascimento|date:"d/m/Y"|default:"Não informada" }}</span>
+                                </div>
 
-                                    <dt class="col-sm-6 fw-bold text-dark">Cidade de Nascimento:</dt>
-                                    <dd class="col-sm-6">{{ servidor.cidade_nascimento|default:"Não informada" }}</dd>
-                                </dl>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Cidade de Nascimento:</strong>
+                                    <span>{{ servidor.cidade_nascimento|default:"Não informada" }}</span>
+                                </div>
                             </div>
                         </div>
                         
-                        <h5 class="mb-2 text-secondary border-bottom pb-2 mt-3">Filiação</h5> <div class="row g-2 mb-3"> <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-3 fw-bold text-dark">Nome da Mãe:</dt>
-                                    <dd class="col-sm-9">{{ servidor.nome_mae|default:"Não informado" }}</dd> </dl>
+                        ---
+                        
+                        <h5 class="mb-2 text-secondary border-bottom pb-2 mt-3">Filiação</h5> 
+                        <div class="row g-2 mb-3"> 
+                            <div class="col-md-6">
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Nome da Mãe:</strong>
+                                    <span>{{ servidor.nome_mae|default:"Não informado" }}</span>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-3 fw-bold text-dark">Nome do Pai:</dt>
-                                    <dd class="col-sm-9">{{ servidor.nome_pai|default:"Não informado" }}</dd> </dl>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Nome do Pai:</strong>
+                                    <span>{{ servidor.nome_pai|default:"Não informado" }}</span>
+                                </div>
                             </div>
                         </div>
 
-                        <h5 class="mb-2 text-secondary border-bottom pb-2 mt-3">Endereço e Contato</h5> <div class="row g-2 mb-3"> <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-4 fw-bold text-dark">Email:</dt>
-                                    <dd class="col-sm-8">{{ servidor.email|default:"Não informado" }}</dd>
-                                    
-                                    <dt class="col-sm-4 fw-bold text-dark">Telefone:</dt>
-                                    <dd class="col-sm-8">{{ servidor.telefone|default:"Não informado" }}</dd>
-                                </dl>
+                        ---
+
+                        <h5 class="mb-2 text-secondary border-bottom pb-2 mt-3">Endereço e Contato</h5> 
+                        <div class="row g-2 mb-3"> 
+                            
+                            <div class="col-md-6">
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Email:</strong>
+                                    <span>{{ servidor.email|default:"Não informado" }}</span>
+                                </div>
+                                
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Telefone:</strong>
+                                    <span>{{ servidor.telefone|default:"Não informado" }}</span>
+                                </div>
                             </div>
 
                             <div class="col-md-6">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-4 fw-bold text-dark">Endereço:</dt>
-                                    <dd class="col-sm-8">Rua {{ servidor.endereco_rua|default:"-" }}, Nº {{ servidor.endereco_numero|default:"-" }}</dd>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Endereço:</strong>
+                                    <span>Rua {{ servidor.endereco_rua|default:"-" }}, Nº {{ servidor.endereco_numero|default:"-" }}</span>
+                                </div>
 
-                                    <dt class="col-sm-4 fw-bold text-dark">Bairro:</dt>
-                                    <dd class="col-sm-8">{{ servidor.endereco_bairro|default:"-" }}</dd>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Bairro:</strong>
+                                    <span>{{ servidor.endereco_bairro|default:"-" }}</span>
+                                </div>
 
-                                    <dt class="col-sm-4 fw-bold text-dark">Cidade/CEP:</dt>
-                                    <dd class="col-sm-8">{{ servidor.endereco_cidade|default:"-" }} / {{ servidor.endereco_cep|default:"-" }}</dd>
-                                </dl>
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">Cidade/CEP:</strong>
+                                    <span>{{ servidor.endereco_cidade|default:"-" }} / {{ servidor.endereco_cep|default:"-" }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
