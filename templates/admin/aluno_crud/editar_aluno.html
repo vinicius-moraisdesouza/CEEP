@@ -4,16 +4,17 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2 class="mb-4">Editando Aluno: {{ aluno.get_full_name }}</h2>
+    <h2 class="mb-4">Editar Aluno: {{ aluno.first_name }} {{ aluno.last_name }}</h2>
 
     {% if form.errors %}
     <div class="alert alert-danger">
         <strong>Erro ao salvar. Por favor, verifique os campos:</strong>
         <ul>
-            {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
-            {% for field in form %}{% for error in field.errors %}
-                <li><strong>{{ field.label }}:</strong> {{ error }}</li>
-            {% endfor %}{% endfor %}
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                {% endfor %}
+            {% endfor %}
         </ul>
     </div>
     {% endif %}
@@ -23,6 +24,7 @@
         <div class="card shadow-sm">
             <div class="card-body p-4">
 
+                <!-- DADOS DA MATRÍCULA -->
                 <h5 class="card-title mb-3 border-bottom pb-2">Dados da Matrícula</h5>
                 <div class="row">
                     <div class="col-md-6 col-lg-3 mb-3">
@@ -43,6 +45,7 @@
                     </div>
                 </div>
 
+                <!-- DADOS PESSOAIS -->
                 <h5 class="card-title my-4 border-bottom pb-2">Dados Pessoais</h5>
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -55,7 +58,7 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Data de Nascimento</label>
-                        {{ form.data_nascimento|add_class:"form-control"|attr:"id:id_data_nascimento" }}
+                        {{ form.data_nascimento|add_class:"form-control"|attr:"type:date" }}
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Cidade de Nascimento</label>
@@ -63,6 +66,7 @@
                     </div>
                 </div>
 
+                <!-- DOCUMENTAÇÃO -->
                 <h5 class="card-title my-4 border-bottom pb-2">Documentação</h5>
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -79,10 +83,11 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Data de Expedição</label>
-                        {{ form.data_expedicao|add_class:"form-control"|attr:"id:id_data_expedicao" }}
+                        {{ form.data_expedicao|add_class:"form-control"|attr:"type:date" }}
                     </div>
                 </div>
 
+                <!-- FILIAÇÃO -->
                 <h5 class="card-title my-4 border-bottom pb-2">Filiação</h5>
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -98,7 +103,8 @@
                         {{ form.responsavel_matricula|add_class:"form-control" }}
                     </div>
                 </div>
-                
+
+                <!-- ENDEREÇO E CONTATO -->
                 <h5 class="card-title my-4 border-bottom pb-2">Endereço e Contato</h5>
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -142,158 +148,110 @@
 {{ block.super }}
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const form = document.querySelector('form');
+document.addEventListener('DOMContentLoaded', function() {
     const cursoSelect = document.getElementById('id_curso');
     const anoModuloSelect = document.getElementById('id_ano_modulo');
     const turnoSelect = document.getElementById('id_turno');
     const turmaSelect = document.getElementById('id_turma');
     const url = "{% url 'get_opcoes_turma' %}";
+    const form = document.querySelector('form');
 
-    // 🧾 Mostra valores ao enviar o formulário
-    form.addEventListener('submit', function (event) {
+    // Logs de debug no envio
+    form.addEventListener('submit', function(event) {
         console.clear();
-        console.log('🧾 Valores do formulário sendo enviados:');
+        console.log('✏️ Atualizando aluno com:');
         console.log('Curso:', cursoSelect.value);
         console.log('Ano/Módulo:', anoModuloSelect.value);
         console.log('Turno:', turnoSelect.value);
         console.log('Turma:', turmaSelect.value);
-        // event.preventDefault(); // descomente para testar
     });
 
-    // 🔧 Atualiza dropdowns dinamicamente
-    function updateDropdown(selectElement, options) {
-        const currentValue = selectElement.value;
-        selectElement.innerHTML = '<option value="">---------</option>';
+    function resetAndDisable(selectElement, placeholder) {
+        selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+        selectElement.disabled = true;
+    }
+
+    function updateDropdown(selectElement, options, selectedValue = null) {
+        selectElement.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '---------';
+        selectElement.appendChild(placeholder);
 
         options.forEach(option => {
             const opt = document.createElement('option');
-            const optionValue = option.id || option.value || option;
-            let optionText = option.display || option.turma || option.ano_modulo || optionValue;
-
-            if (typeof optionText === 'string' && optionText === optionText.toLowerCase()) {
-                optionText = optionText.charAt(0).toUpperCase() + optionText.slice(1);
-            }
-
-            opt.value = optionValue;
-            opt.textContent = optionText;
-
-            if (String(opt.value) === String(currentValue)) {
-                opt.selected = true;
-            }
-
+            opt.value = option.id || option.value || option;
+            opt.textContent = option.display || option.turma || option.ano_modulo || opt.value;
+            if (selectedValue && selectedValue == opt.value) opt.selected = true;
             selectElement.appendChild(opt);
         });
 
         selectElement.disabled = false;
     }
 
-    // ==========================================================
-    // <<< EVENTOS DE MUDANÇA (idênticos ao cadastro) >>>
-    // ==========================================================
-
-    // 1️⃣ Quando o CURSO é alterado
-    cursoSelect.addEventListener('change', function () {
+    // Eventos de dependência
+    cursoSelect.addEventListener('change', function() {
+        resetAndDisable(anoModuloSelect, 'Aguardando o Curso...');
+        resetAndDisable(turnoSelect, 'Aguardando o Ano/Módulo...');
+        resetAndDisable(turmaSelect, 'Aguardando o Turno...');
         const cursoId = this.value;
-        let anoValue = anoModuloSelect.value;
-
-        anoModuloSelect.innerHTML = '<option value="">Carregando...</option>';
-        turnoSelect.innerHTML = '<option value="">Aguardando...</option>';
-        turmaSelect.innerHTML = '<option value="">Aguardando...</option>';
-        turnoSelect.disabled = true;
-        turmaSelect.disabled = true;
-
         if (cursoId) {
             fetch(`${url}?target=ano_modulo&curso_id=${cursoId}`)
-                .then(response => response.json())
-                .then(data => {
-                    updateDropdown(anoModuloSelect, data.options);
-                    anoModuloSelect.value = anoValue;
-
-                    if (anoModuloSelect.value) {
-                        anoModuloSelect.dispatchEvent(new Event('change'));
-                    }
-                });
+                .then(res => res.json())
+                .then(data => updateDropdown(anoModuloSelect, data.options));
         }
     });
 
-    // 2️⃣ Quando o ANO/MÓDULO é alterado
-    anoModuloSelect.addEventListener('change', function () {
+    anoModuloSelect.addEventListener('change', function() {
+        resetAndDisable(turnoSelect, 'Aguardando o Ano/Módulo...');
+        resetAndDisable(turmaSelect, 'Aguardando o Turno...');
         const cursoId = cursoSelect.value;
         const anoModulo = this.value;
-        let turnoValue = turnoSelect.value;
-
-        turnoSelect.innerHTML = '<option value="">Carregando...</option>';
-        turmaSelect.innerHTML = '<option value="">Aguardando...</option>';
-        turmaSelect.disabled = true;
-
         if (cursoId && anoModulo) {
             fetch(`${url}?target=turno&curso_id=${cursoId}&ano_modulo=${anoModulo}`)
-                .then(response => response.json())
-                .then(data => {
-                    const options = data.options.map((value, index) => ({
-                        value: value,
-                        display: data.options_display ? data.options_display[index] : value
-                    }));
-
-                    updateDropdown(turnoSelect, options);
-
-                    setTimeout(() => {
-                        turnoSelect.value = turnoValue;
-                        if (turnoSelect.value) {
-                            turnoSelect.dispatchEvent(new Event('change'));
-                        }
-                    }, 100);
-                });
+                .then(res => res.json())
+                .then(data => updateDropdown(turnoSelect, data.options));
         }
     });
 
-    // 3️⃣ Quando o TURNO é alterado
-    turnoSelect.addEventListener('change', function () {
+    turnoSelect.addEventListener('change', function() {
+        resetAndDisable(turmaSelect, 'Aguardando o Turno...');
         const cursoId = cursoSelect.value;
         const anoModulo = anoModuloSelect.value;
         const turno = this.value;
-        let turmaValue = turmaSelect.value;
-
-        turmaSelect.innerHTML = '<option value="">Carregando...</option>';
-        turmaSelect.disabled = true;
-
         if (cursoId && anoModulo && turno) {
             fetch(`${url}?target=turma&curso_id=${cursoId}&ano_modulo=${anoModulo}&turno=${turno}`)
-                .then(response => response.json())
-                .then(data => {
-                    updateDropdown(turmaSelect, data.options);
-                    turmaSelect.value = turmaValue;
-                });
+                .then(res => res.json())
+                .then(data => updateDropdown(turmaSelect, data.options));
         }
     });
 
-    // ==========================================================
-    // <<< CORREÇÃO PARA A PÁGINA DE EDIÇÃO >>>
-    // ==========================================================
-    function dispararSequencia() {
-        if (cursoSelect.value) {
-            cursoSelect.dispatchEvent(new Event('change'));
-            setTimeout(() => {
-                if (anoModuloSelect.value) {
-                    anoModuloSelect.dispatchEvent(new Event('change'));
-                    setTimeout(() => {
-                        if (turnoSelect.value) {
-                            turnoSelect.dispatchEvent(new Event('change'));
-                        }
-                    }, 400);
-                }
-            }, 400);
-        }
-    }
+    // Inicialmente, todos habilitados (edição)
+    anoModuloSelect.disabled = false;
+    turnoSelect.disabled = false;
+    turmaSelect.disabled = false;
 
-    // Executa a sequência ao carregar a página
-    dispararSequencia();
-});
+    // 🔄 Preenche os selects automaticamente no modo edição
+    if (cursoSelect.value && anoModuloSelect.value && turnoSelect.value) {
+        fetch(`${url}?target=ano_modulo&curso_id=${cursoSelect.value}`)
+            .then(r => r.json())
+            .then(data => updateDropdown(anoModuloSelect, data.options))
+            .then(() => fetch(`${url}?target=turno&curso_id=${cursoSelect.value}&ano_modulo=${anoModuloSelect.value}`))
+            .then(r => r.json())
+            .then(data => updateDropdown(turnoSelect, data.options))
+            .then(() => fetch(`${url}?target=turma&curso_id=${cursoSelect.value}&ano_modulo=${anoModuloSelect.value}&turno=${turnoSelect.value}`))
+            .then(r => r.json())
+            .then(data => updateDropdown(turmaSelect, data.options))
+            .then(() => {
+                anoModuloSelect.value = "{{ form.ano_modulo.value|default_if_none:'' }}";
+                turnoSelect.value = "{{ form.turno.value|default_if_none:'' }}";
+                turmaSelect.value = "{{ form.turma.value|default_if_none:'' }}";
+                    });
+                }
+            });
 </script>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="{% static 'js/inputmask.min.js' %}"></script>
 <script src="{% static 'js/cadastro.js' %}"></script>
-
 {% endblock scripts %}

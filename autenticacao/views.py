@@ -281,24 +281,71 @@ def cadastrar_aluno(request):
 @role_required('admin')
 def editar_aluno(request, aluno_id):
     aluno = get_object_or_404(CustomUser, id=aluno_id, tipo='aluno')
-    
+    from core.models import Turma  # caso ainda não esteja importado no topo
+
     if request.method == 'POST':
-        print("="*30)
-        print("🧾 DADOS RECEBIDOS DO FORMULÁRIO (NO BACKEND):")
-        print(f"Curso ID: {request.POST.get('curso')}")
-        print(f"Ano/Módulo: {request.POST.get('ano_modulo')}")
-        print(f"Turno: {request.POST.get('turno')}")
+        curso_id = request.POST.get('curso')
+        ano_modulo = request.POST.get('ano_modulo')
+        turno = request.POST.get('turno')
+
+        # --- Debug opcional ---
+        print("="*40)
+        print("🧾 DADOS RECEBIDOS NO POST (Editar Aluno):")
+        print(f"Curso ID: {curso_id}")
+        print(f"Ano/Módulo: {ano_modulo}")
+        print(f"Turno: {turno}")
         print(f"Turma ID: {request.POST.get('turma')}")
-        print("="*30)
+        print("="*40)
+
         form = AlunoCreateForm(request.POST, instance=aluno)
+
+        # --- 🔧 Repopula dinamicamente as opções antes de validar ---
+        turmas_queryset = Turma.objects.all()
+        if curso_id:
+            turmas_queryset = turmas_queryset.filter(curso_id=curso_id)
+        if ano_modulo:
+            turmas_queryset = turmas_queryset.filter(ano_modulo=ano_modulo)
+        if turno:
+            turmas_queryset = turmas_queryset.filter(turno=turno)
+
+        # Atualiza os campos dependentes
+        form.fields['turma'].queryset = turmas_queryset
+        form.fields['turno'].choices = [
+            (valor, label) for valor, label in Turma.TURNO_CHOICES
+            if valor in turmas_queryset.values_list('turno', flat=True)
+        ]
+
+        # --- Validação ---
         if form.is_valid():
-            form.save() 
+            form.save()
             messages.success(request, "Aluno atualizado com sucesso.")
             return redirect('gerenciar_alunos')
+        else:
+            print("\n⚠️ ERROS DE VALIDAÇÃO:")
+            print(form.errors.as_json())
+            print("-" * 40)
+            messages.error(request, "Erro ao salvar. Verifique os campos.")
     else:
         form = AlunoCreateForm(instance=aluno)
 
-    return render(request, 'admin/aluno_crud/editar_aluno.html', {'form': form, 'aluno': aluno})
+        # --- 🔄 Pré-carrega selects com base na turma atual ---
+        if hasattr(aluno, 'alunoturma_set') and aluno.alunoturma_set.exists():
+            turma_atual = aluno.alunoturma_set.first().turma
+            turmas_queryset = Turma.objects.filter(
+                curso=turma_atual.curso,
+                ano_modulo=turma_atual.ano_modulo,
+                turno=turma_atual.turno
+            )
+            form.fields['turma'].queryset = turmas_queryset
+            form.fields['turno'].choices = [
+                (turma_atual.turno, turma_atual.get_turno_display())
+            ]
+
+    context = {
+        'form': form,
+        'aluno': aluno
+    }
+    return render(request, 'admin/aluno_crud/editar_aluno.html', context)
 
 
 @login_required
