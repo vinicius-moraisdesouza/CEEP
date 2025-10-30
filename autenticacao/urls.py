@@ -17,6 +17,7 @@ urlpatterns = [
     path('admin/dashboard/', views.admin_dashboard_view, name='admin_dashboard'),
     path('professor/dashboard/', views.professor_dashboard_view, name='professor_dashboard'),
     path('aluno/dashboard/', views.aluno_dashboard_view, name='aluno_dashboard'),
+    path('servidor/dashboard/', views.servidor_dashboard_view, name='servidor_dashboard'),
 
     # ADMIN - Dashboard
     path('admin/professor_crud/professores/', views.gerenciar_professores, name='gerenciar_professores'),
@@ -62,6 +63,14 @@ urlpatterns = [
     path('professor/aluno/<int:aluno_id>/detalhes/', views.ver_detalhes_aluno_professor, name='ver_detalhes_aluno_professor'),
     path('professor/inserir-nota/', views.inserir_nota, name="inserir_nota"),
     
-    # ALUNO - Boletim
+    # ALUNO - Boletim - Estágio
     path('aluno/boletim/', views.ver_boletim_aluno, name='ver_boletim_aluno'),
+    path('aluno/estagio/', views.gestao_estagio_aluno, name='solicitar_estagio'),
+    path('aluno/estagio/detalhes/', views.detalhes_estagio_aluno, name='detalhes_estagio_aluno'),
+    path('aluno/estagio/documento/<int:documento_id>/visualizar/', views.visualizar_documento_estagio, name='visualizar_documento_estagio'),
+    path('aluno/estagio/documento/<int:documento_id>/preencher/', views.preencher_documento_estagio, name='preencher_documento_estagio'),
+    path('aluno/estagio/documento/<int:documento_id>/upload-pdf/', views.upload_pdf_assinado, name='upload_pdf_assinado'),
+    path('aluno/estagio/documento/<int:documento_id>/remover_pdf/', views.remover_pdf_assinado, name='remover_pdf_assinado'),
+    path('aluno/estagio/documento/<int:documento_id>/assinar/', views.assinar_documento_aluno, name='assinar_documento_aluno'),
+    path('aluno/estagio/documento/<int:documento_id>/compartilhar/', views.compartilhar_documento_aluno, name='compartilhar_documento_aluno'),
 ]

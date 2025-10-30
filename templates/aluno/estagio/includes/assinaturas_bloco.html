@@ -1,0 +1,44 @@
+{% load static %}
+
+{% if documento.assinado_aluno_em or documento.assinado_orientador_em or documento.assinado_diretor_em or documento.pdf_supervisor_assinado %}
+    <div class="card border-secondary mt-4">
+        <div class="card-body p-3 bg-light">
+             <p class="mb-2 small text-muted">Documento assinado eletronicamente por:</p>
+             <ul class="list-unstyled mb-0 small">
+                {% if documento.assinado_aluno_em %}
+                <li>
+                    <i class="fas fa-check-circle text-success me-1"></i> 
+                    <strong>{{ documento.estagio.aluno.get_full_name }}</strong> ({{ documento.estagio.aluno.numero_matricula }}) - Discente, em {{ documento.assinado_aluno_em|date:"d/m/Y H:i:s" }}
+                </li>
+                {% endif %}
+                {% if documento.assinado_orientador_em %}
+                 <li>
+                    <i class="fas fa-check-circle text-success me-1"></i> 
+                    <strong>{{ documento.estagio.orientador.get_full_name|default:'(Orientador não definido)' }}</strong> - Professor Orientador, em {{ documento.assinado_orientador_em|date:"d/m/Y H:i:s" }}
+                 </li>
+                {% endif %}
+                 {% if documento.assinado_diretor_em %}
+                 <li>
+                    <i class="fas fa-check-circle text-success me-1"></i> 
+                    <strong>{{ documento.assinado_por_diretor.get_full_name|default:'(Diretor)' }}</strong> {# Ajuste se tiver o nome do diretor #} - Diretor(a), em {{ documento.assinado_diretor_em|date:"d/m/Y H:i:s" }}
+                 </li>
+                {% endif %}
+             </ul>
+        </div>
+    </div>
+
+    {# Simulação do QR Code e Códigos - pode ser adaptado #}
+    <div class="d-flex justify-content-between align-items-center mt-3 border-top pt-3">
+         <div class="small text-muted">
+            Este documento foi emitido pelo Sistema em {{ documento.data_upload|date:"d/m/Y" }}.<br>
+            Para comprovar sua autenticidade, use os dados abaixo: <br>
+            <strong>Código Verificador:</strong> {{ documento.id }}XYZ <br> {# Exemplo, pode gerar um código real #}
+            <strong>Código de Autenticação:</strong> {{ documento.estagio.aluno.id }}{{ documento.id }}ABC {# Exemplo #}
+         </div>
+         {# <img src="URL_DO_SEU_GERADOR_QRCODE?dados={{ documento.id }}" alt="QR Code" style="width: 80px; height: 80px;"> #}
+         <p class="text-muted small">(QR Code)</p> {# Placeholder #}
+    </div>
+
+{% else %}
+    <p class="text-center text-muted small mt-4">(Documento ainda não assinado eletronicamente)</p>
+{% endif %}

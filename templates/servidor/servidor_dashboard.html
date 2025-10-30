@@ -1,18 +1,86 @@
 {% extends 'base.html' %}
+{% load static %}
+
 {% block content %}
 <div class="container mt-4">
-  <h2>Painel do Servidor</h2>
+    <h2 class="mb-4">Dashboard do Servidor</h2>
 
-  {% if is_diretor %}
-    <div class="alert alert-info">Bem-vindo, Diretor!</div>
-    <div class="d-flex flex-wrap gap-3">
-      <a href="{% url 'gerenciar_professores' %}" class="btn btn-outline-primary">Gerenciar Professores</a>
-      <a href="{% url 'gerenciar_turmas' %}" class="btn btn-outline-secondary">Gerenciar Turmas</a>
-      <a href="{% url 'visualizar_documentos' %}" class="btn btn-outline-success">Visualizar Documentos</a>
+    <div class="row g-4">
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-secondary">Estágios Ativos</h5>
+                    <p class="display-4 fw-bold text-primary mb-0">
+                        {{ estagios_ativos_count }}
+                    </p>
+                    <small class="text-muted">Processos de estágio "Em Andamento"</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center h-100 border-warning border-2">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">Aguardando Verificação</h5>
+                    <p class="display-4 fw-bold text-warning mb-0">
+                        {{ documentos_pendentes_count }}
+                    </p>
+                    <small class="text-muted">Documentos que precisam da sua análise</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-secondary">Documentos Finalizados</h5>
+                    <p class="display-4 fw-bold text-success mb-0">
+                        {{ documentos_finalizados_count }}
+                    </p>
+                    <small class="text-muted">Total de documentos arquivados</small>
+                </div>
+            </div>
+        </div>
     </div>
-  {% else %}
-    <p>Bem-vindo, Servidor!</p>
-    <a href="{% url 'visualizar_documentos' %}" class="btn btn-outline-secondary">Visualizar Documentos</a>
-  {% endif %}
+
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Lista de Ações Pendentes (Status: "Em Verificação")</h5>
+                </div>
+                
+                {% if documentos_pendentes %}
+                    <ul class="list-group list-group-flush">
+                        {% for doc in documentos_pendentes %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong class="text-dark">{{ doc.estagio.aluno.get_full_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ doc.get_tipo_documento_display }}
+                                        (Enviado em: {{ doc.data_upload|date:"d/m/Y" }})
+                                    </small>
+                                </div>
+                                <a href="#" class="btn btn-outline-primary btn-sm">
+                                    Analisar
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="card-body text-center">
+                        <p class="text-success mb-0">
+                            <img src="{% static 'assets/img/check.png' %}" width="24" class="me-2">
+                            Tudo certo! Não há documentos pendentes.
+                        </p>
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
 </div>
-{% endblock %}
+{% endblock content %}

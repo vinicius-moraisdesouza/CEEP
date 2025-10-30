@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth import authenticate, get_user_model
 from django.forms import modelformset_factory, BaseModelFormSet
-from core.models import Turma, AlunoTurma, ProfessorMateriaAnoCursoModalidade, Curso
+from core.models import Turma, AlunoTurma, ProfessorMateriaAnoCursoModalidade, Curso, Estagio
 import datetime
 import random
 
@@ -262,3 +262,135 @@ class ServidorCreateForm(forms.ModelForm):
         if commit:
             servidor.save()
         return servidor
+    
+class EstagioCreateForm(forms.ModelForm):
+    """
+    Formulário para o Aluno solicitar a abertura do seu
+    processo de estágio, preenchendo os dados iniciais.
+    """
+    class Meta:
+        model = Estagio
+        
+        # Campos que o aluno deve preencher
+        fields = [
+            'supervisor_nome', 
+            'supervisor_empresa', 
+            'supervisor_cargo', 
+            'supervisor_email', 
+            'data_inicio', 
+            'data_fim'
+        ]
+        
+        # Labels (textos) que aparecerão no formulário
+        labels = {
+            'supervisor_nome': 'Nome do Supervisor da Empresa',
+            'supervisor_empresa': 'Nome da Empresa Concedente',
+            'supervisor_cargo': 'Cargo do Supervisor',
+            'supervisor_email': 'Email do Supervisor',
+            'data_inicio': 'Data de Início Prevista',
+            'data_fim': 'Data de Término Prevista',
+        }
+        
+        # Widgets para estilizar com Bootstrap (como nos seus outros formulários)
+        widgets = {
+            'supervisor_nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'supervisor_empresa': forms.TextInput(attrs={'class': 'form-control'}),
+            'supervisor_cargo': forms.TextInput(attrs={'class': 'form-control'}),
+            'supervisor_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'email@empresa.com'}),
+            # Estes 'type': 'date' fazem o navegador mostrar um calendário
+            'data_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}), 
+            'data_fim': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        }
+        
+# Em autenticacao/forms.py
+
+# ... (outros imports e formulários) ...
+
+class TermoCompromissoForm(forms.Form):
+    """
+    Este formulário representa os campos EDITÁVEIS
+    do documento TERMO-DE-COMPROMISSO.html.
+    Os dados do aluno (nome, CPF, etc.) virão do 'request.user'.
+    Os dados da empresa serão preenchidos pelo aluno.
+    """
+    
+    # Dados da Empresa (Concedente)
+    concedente_nome = forms.CharField(label="Nome da Concedente (Empresa)")
+    concedente_cnpj = forms.CharField(label="CNPJ da Concedente")
+    concedente_rua = forms.CharField(label="Rua", max_length=150)
+    concedente_numero = forms.CharField(label="Nº", max_length=10)
+    concedente_bairro = forms.CharField(label="Bairro", max_length=100)
+    concedente_cidade_uf = forms.CharField(label="Cidade-UF", max_length=100) 
+    concedente_cep = forms.CharField(label="CEP", max_length=9) 
+    concedente_representante = forms.CharField(label="Nome do Representante da Concedente")
+    concedente_email = forms.EmailField(label="Email da Concedente", required=False)
+    concedente_telefone = forms.CharField(label="Telefone da Concedente", required=False)
+
+    # Dados do Supervisor
+    supervisor_nome = forms.CharField(label="Nome do Supervisor (funcionário da Concedente)")
+
+    # Dados do Estágio
+    data_inicio = forms.DateField(label="Data de Início (___/___/____)", widget=forms.DateInput(attrs={'type': 'date'}))
+    data_fim = forms.DateField(label="Data de Término (___/___/____)", widget=forms.DateInput(attrs={'type': 'date'}))
+    carga_horaria_diaria = forms.IntegerField(label="Horas Diárias", min_value=1, max_value=8)
+    carga_horaria_semanal = forms.IntegerField(label="Horas Semanais", min_value=1, max_value=40)
+    
+    # Dados da Apólice de Seguro
+    apolice_numero = forms.CharField(label="Nº da Apólice de Seguro")
+    apolice_empresa = forms.CharField(label="Nome da Seguradora")
+    
+    # Campo Orientador
+    orientador = forms.ModelChoiceField(
+        queryset=CustomUser.objects.filter(tipo='professor').order_by('first_name', 'last_name'), # Corrigido order_by
+        label="Professor(a) Orientador(a) da Escola",
+        required=True, # Ajuste se necessário
+        empty_label="-- Selecione o Professor --",
+        widget=forms.Select(attrs={'class': 'form-select form-select-sm'})
+    )
+
+    # Campo Anexo PDF
+    anexo_assinaturas = forms.FileField(
+        label="Anexar aqui o PDF",
+        required=False,
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control form-control-sm'})
+    )
+    
+    
+    # ==========================================================
+    # MÉTODO __init__ CORRIGIDO
+    # ==========================================================
+    def __init__(self, *args, **kwargs):
+        # Capturamos o valor inicial do orientador passado pela view
+        orientador_initial = kwargs.pop('orientador_initial', None)
+        
+        # CHAMAMOS SUPER() PRIMEIRO
+        super().__init__(*args, **kwargs)
+        
+        # Agora, 'self.errors' existe (está vazio em GET, preenchido em POST inválido)
+
+        for field_name, field in self.fields.items():
+            
+            # Ignora os campos que NÃO devem ser 'inline'
+            if field_name not in ['orientador', 'anexo_assinaturas']: 
+                attrs = {'class': 'inline-input'} # Usa a classe inline
+                
+                # Define o tipo de input para datas e números
+                if 'data' in field_name:
+                    attrs['type'] = 'date'
+                elif isinstance(field, forms.IntegerField):
+                    attrs['type'] = 'number'
+                
+                # ================================================
+                # CORREÇÃO: Verificamos 'self.errors' (do formulário)
+                # e não 'field.errors' (que não existe aqui)
+                # ================================================
+                if self.errors.get(field_name):
+                    attrs['class'] += ' is-invalid' # Adiciona a classe de erro
+                
+                # Atualiza o widget do campo
+                field.widget.attrs.update(attrs)
+            
+            # Define o valor inicial para o dropdown 'orientador', se foi passado
+            elif field_name == 'orientador' and orientador_initial:
+                 self.initial['orientador'] = orientador_initial
+    # ==========================================================

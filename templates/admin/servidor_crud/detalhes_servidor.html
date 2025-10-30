@@ -94,7 +94,6 @@
                             </div>
                         </div>
                         
-                        ---
                         
                         <h5 class="mb-2 text-secondary border-bottom pb-2 mt-3">Filiação</h5> 
                         <div class="row g-2 mb-3"> 
@@ -112,16 +111,9 @@
                             </div>
                         </div>
 
-                        ---
 
                         <h5 class="mb-2 text-secondary border-bottom pb-2 mt-3">Endereço e Contato</h5> 
-                        <div class="row g-2 mb-3"> 
-                            
-                            <div class="col-md-6">
-                                <div class="d-flex mb-0">
-                                    <strong class="me-1 text-dark">Email:</strong>
-                                    <span>{{ servidor.email|default:"Não informado" }}</span>
-                                </div>
+                        <div class="row g-2 mb-3">
                                 
                                 <div class="d-flex mb-0">
                                     <strong class="me-1 text-dark">Telefone:</strong>
@@ -132,7 +124,7 @@
                             <div class="col-md-6">
                                 <div class="d-flex mb-0">
                                     <strong class="me-1 text-dark">Endereço:</strong>
-                                    <span>Rua {{ servidor.endereco_rua|default:"-" }}, Nº {{ servidor.endereco_numero|default:"-" }}</span>
+                                    <span> {{ servidor.endereco_rua|default:"-" }}, Nº {{ servidor.endereco_numero|default:"-" }}</span>
                                 </div>
 
                                 <div class="d-flex mb-0">
@@ -141,8 +133,13 @@
                                 </div>
 
                                 <div class="d-flex mb-0">
-                                    <strong class="me-1 text-dark">Cidade/CEP:</strong>
-                                    <span>{{ servidor.endereco_cidade|default:"-" }} / {{ servidor.endereco_cep|default:"-" }}</span>
+                                    <strong class="me-1 text-dark">Cidade:</strong>
+                                    <span>{{ servidor.endereco_cidade|default:"-" }} </span>
+                                </div>
+
+                                <div class="d-flex mb-0">
+                                    <strong class="me-1 text-dark">CEP:</strong>
+                                    <span>{{ servidor.endereco_cep|default:"-" }}</span>
                                 </div>
                             </div>
                         </div>

@@ -28,7 +28,8 @@
                                     
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
                                         <strong class="text-muted">Matrícula:</strong>
-                                        <span class="text-dark">{{ user.matricula|default:"Não informada" }}</span>
+                                        
+                                        <span class="text-dark">{{ user.numero_matricula|default:"Não informada" }}</span>
                                     </li>
                                     
                                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -71,7 +72,7 @@
                         </div>
                     </div>
 
-                    {% if turmas or vinculos %}
+                    {% if turmas or vinculos or user.eixo %}
                         <h4 class="mb-3 text-secondary border-bottom pb-2 mt-4">Vínculos Institucionais</h4>
                         
                         <div class="card card-body shadow-sm p-0 border-secondary">
@@ -79,25 +80,44 @@
                                 
                                 {% if turmas %}
                                     <li class="list-group-item bg-light text-secondary">
-                                        <strong class="fw-bold">Turmas de Aluno:</strong>
+                                        <strong class="fw-bold">Turma do Aluno:</strong>
                                     </li>
                                     {% for turma in turmas %}
                                         <li class="list-group-item text-dark">
-                                            {{ turma.nome }}
+                                            {{ turma.curso.nome }} — {{ turma.ano_modulo }} ({{ turma.get_turno_display }}) 
+                                            {% if turma.turma %} - {{ turma.turma }}{% endif %} 
+                                            {% if turma.modalidade %} / {{ turma.modalidade }}{% endif %}
+                                        </li>
+                                    {% empty %}
+                                        <li class="list-group-item text-muted">
+                                            Este aluno não está matriculado em nenhuma turma no momento.
                                         </li>
                                     {% endfor %}
                                 {% endif %}
             
                                 {% if vinculos %}
                                     <li class="list-group-item bg-light text-secondary {% if turmas %}mt-3 border-top{% endif %}">
-                                        <strong class="fw-bold">Matéria(s) e Turma(s) (Professor):</strong>
+                                        <strong class="fw-bold">Matéria(s) e Vínculo(s) (Professor):</strong>
                                     </li>
                                     {% for v in vinculos %}
                                         <li class="list-group-item text-dark">
-                                            <strong>{{ v.materia.nome }}</strong> — {{ v.turma.nome }}
+                                            <strong>{{ v.materia.nome }}</strong> — {{ v.curso.nome }} ({{ v.ano_modulo }} - {{ v.get_modalidade_display }})
                                         </li>
                                     {% endfor %}
                                 {% endif %}
+
+                                {% if user.tipo == 'servidor' or user.tipo == 'diretor' %}
+                                    {% if user.eixo %}
+                                    <li class="list-group-item text-dark d-flex justify-content-between align-items-center">
+                                        <strong>Eixo:</strong>
+                                        <span>{{ user.get_eixo_display }}</span>
+                                    </li>
+                                    {% endif %}
+                                    <li class="list-group-item text-dark d-flex justify-content-between align-items-center">
+                                        <strong>Cargo:</strong>
+                                        <span>{{ user.get_tipo_display }}</span>
+                                    </li>
+                                {% endif %} 
                             </ul>
                         </div>
                     {% endif %}
@@ -121,9 +141,15 @@
                         <img src="{%static 'assets/img/voltar.png'%}" width='20px' height='20px' class="me-2">
                         Voltar
                     </a>
+                
+                {% elif user.tipo == 'servidor' or user.tipo == 'diretor' %}
+                    <a href="{% url 'servidor_dashboard' %}" class="btn btn-secondary">
+                        <img src="{%static 'assets/img/voltar.png'%}" width='20px' height='20px' class="me-2">
+                        Voltar
+                    </a>
                 {% endif %}
 
-                {% if user.tipo == 'professor' or user.tipo == 'aluno' %}
+                {% if user.tipo == 'professor' or user.tipo == 'aluno' or user.tipo == 'servidor' or user.tipo == 'diretor' %}
                     <a href="{% url 'alterar_senha' %}" class="btn btn-primary">
                         Alterar Senha
                     </a>

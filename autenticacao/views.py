@@ -3,12 +3,13 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 from django.utils.timezone import now
 from core.decorators import role_required
+import datetime
 
 from .forms import (
     EmailAuthenticationForm,
@@ -16,10 +17,12 @@ from .forms import (
     ProfessorMateriaAnoCursoModalidadeFormSet,
     ProfessorMateriaAnoCursoModalidadeForm,
     AlunoCreateForm,
-    ServidorCreateForm
+    ServidorCreateForm,
+    EstagioCreateForm,
+    TermoCompromissoForm
 )
 
-from core.models import Materia, Turma, CustomUser, ProfessorMateriaAnoCursoModalidade, AlunoTurma, Nota
+from core.models import Materia, Turma, CustomUser, ProfessorMateriaAnoCursoModalidade, AlunoTurma, Nota, Estagio, DocumentoEstagio
 
 
 # === AUTENTICAÇÃO ===
@@ -32,6 +35,8 @@ def redirect_por_tipo(request):
         return redirect('professor_dashboard')
     elif request.user.tipo == 'aluno':
         return redirect('aluno_dashboard')
+    elif request.user.tipo == 'servidor' or request.user.tipo == 'diretor':
+        return redirect('servidor_dashboard')
     return redirect('login')
 
 def login_view(request):
@@ -78,8 +83,9 @@ def ver_perfil(request):
 
     if user.tipo == 'aluno':
         turmas = Turma.objects.filter(alunoturma__aluno=user)
+
     elif user.tipo == 'professor':
-        vinculos = ProfessorMateriaAnoCursoModalidade.objects.filter(professor=user).select_related('materia', 'turma')
+        vinculos = ProfessorMateriaAnoCursoModalidade.objects.filter(professor=user).select_related('materia', 'curso')
 
     return render(request, 'perfil/ver_perfil.html', {
         'user': user,
@@ -136,6 +142,48 @@ def aluno_dashboard_view(request):
         'notas': notas,
         'aluno': aluno
     })
+    
+@login_required
+@role_required('servidor', 'diretor') # Permite acesso a ambos os tipos
+def servidor_dashboard_view(request):
+    """
+    Dashboard para Servidores e Diretores, focado na gestão de estágios.
+    """
+    
+    # --- Métricas Principais ---
+    
+    # Conta o total de processos de estágio abertos (status "Em Andamento")
+    # (Estes status vêm do models.py)
+    estagios_ativos_count = Estagio.objects.filter(status_geral="Em Andamento").count()
+    
+    # Conta documentos que exigem ação (status "EM_VERIFICACAO")
+    documentos_pendentes_count = DocumentoEstagio.objects.filter(
+        status='EM_VERIFICACAO'
+    ).count()
+    
+    # Conta o total de documentos já finalizados/arquivados
+    documentos_finalizados_count = DocumentoEstagio.objects.filter(
+        status='FINALIZADO'
+    ).count()
+
+    # --- Lista de Ações Pendentes ---
+    
+    # Busca os 10 documentos mais recentes que precisam de verificação
+    documentos_pendentes = DocumentoEstagio.objects.filter(
+        status='EM_VERIFICACAO'
+    ).select_related('estagio__aluno').order_by('-data_upload')[:10]
+
+    
+    context = {
+        'estagios_ativos_count': estagios_ativos_count,
+        'documentos_pendentes_count': documentos_pendentes_count,
+        'documentos_finalizados_count': documentos_finalizados_count,
+        'documentos_pendentes': documentos_pendentes,
+        'user': request.user
+    }
+    
+    # O template que vamos criar a seguir
+    return render(request, 'servidor/servidor_dashboard.html', context)
 
 
 # === ADMIN - PROFESSORES ===
@@ -281,7 +329,6 @@ def cadastrar_aluno(request):
 @role_required('admin')
 def editar_aluno(request, aluno_id):
     aluno = get_object_or_404(CustomUser, id=aluno_id, tipo='aluno')
-    from core.models import Turma  # caso ainda não esteja importado no topo
 
     if request.method == 'POST':
         curso_id = request.POST.get('curso')
@@ -668,13 +715,21 @@ def inserir_nota(request):
     })
 
 
-# === ALUNO - BOLETIM ===
+# ==========================================================
+# === ALUNO - BOLETIM - ESTÁGIO 
+# ==========================================================
 
 @login_required
 @role_required('aluno')
 def ver_boletim_aluno(request):
+    """
+    (Esta view permanece a mesma)
+    Mostra o boletim do aluno.
+    """
     aluno = request.user
+    # Correção: Usar alunoturma_set para encontrar as turmas
     turmas_ids = AlunoTurma.objects.filter(aluno=aluno).values_list('turma_id', flat=True)
+    # Correção: Filtrar matérias pelas turmas do aluno
     materias = Materia.objects.filter(turmas__id__in=turmas_ids).distinct()
 
     boletim = []
@@ -682,4 +737,328 @@ def ver_boletim_aluno(request):
         nota = Nota.objects.filter(aluno=aluno, materia=materia).first()
         boletim.append({'materia': materia, 'nota': nota})
 
-    return render(request, 'aluno/boletim.html', {'boletim': boletim, 'aluno': aluno})
+    # Certifique-se que o caminho do template está correto
+    return render(request, 'aluno/boletim/boletim.html', {'boletim': boletim, 'aluno': aluno})
+
+
+@login_required
+@role_required('aluno')
+def gestao_estagio_aluno(request):
+    """
+    View "Gestora" (Dispatcher) - VERSÃO CORRIGIDA.
+    Esta é a view chamada pelo botão no dashboard.
+
+    1. Verifica se o aluno já tem um 'Estagio' (Dossiê).
+    2. Se não tiver, CRIA um 'Estagio' (com datas padrão) e todos 
+       os 'DocumentoEstagio' obrigatórios em status 'RASCUNHO'.
+    3. Redireciona o aluno para a "Central de Documentos" (detalhes_estagio_aluno).
+    """
+    # Procura pelo Dossiê de Estágio do aluno.
+    # O 'get_or_create' cria o objeto Estagio se ele não existir.
+    
+    # --- MODIFICAÇÃO AQUI ---
+    hoje = datetime.date.today() # Pega a data de hoje
+    estagio, criado = Estagio.objects.get_or_create(
+        aluno=request.user,
+        # O 'defaults' só é usado se o objeto for criado agora
+        defaults={
+            'status_geral': 'Rascunho (Aguardando preenchimento)',
+            'data_inicio': hoje, # <-- Valor padrão adicionado
+            'data_fim': hoje     # <-- Valor padrão adicionado
+            # Verifique se mais algum campo obrigatório do Estagio 
+            # precisa de um valor default aqui
+        }
+    )
+    # --- FIM DA MODIFICAÇÃO ---
+
+    if criado:
+        # Se o Dossiê foi criado agora, vamos também criar os
+        # documentos obrigatórios que definimos no models.py
+
+        # Pega todos os tipos de documento definidos em models.py
+        tipos_de_documento = DocumentoEstagio.TIPO_DOCUMENTO_CHOICES
+
+        documentos_para_criar = []
+        for tipo_id, nome_legivel in tipos_de_documento:
+            documentos_para_criar.append(
+                DocumentoEstagio(
+                    estagio=estagio,
+                    tipo_documento=tipo_id,
+                    status='RASCUNHO' # Começa como Rascunho
+                )
+            )
+
+        # Cria todos os documentos no banco de dados de uma só vez
+        DocumentoEstagio.objects.bulk_create(documentos_para_criar)
+        messages.info(request, "Seu Dossiê de Estágio foi criado. Por favor, preencha os documentos necessários.")
+
+    # Envia o aluno para a "Central de Documentos"
+    return redirect('detalhes_estagio_aluno')
+
+
+@login_required
+@role_required('aluno')
+def detalhes_estagio_aluno(request):
+    """
+    A "Central de Documentos" do Aluno - VERSÃO ATUALIZADA COM ORDENAÇÃO.
+    Mostra os detalhes do estágio e a lista de documentos na ordem definida.
+    """
+    estagio = get_object_or_404(Estagio, aluno=request.user)
+
+    # 1. Busca todos os documentos ligados a esse estágio
+    documentos_qs = DocumentoEstagio.objects.filter(estagio=estagio)
+
+    # 2. Define a ordem desejada (use os IDs exatos do TIPO_DOCUMENTO_CHOICES em models.py)
+    ordem_desejada = [
+        'TERMO_COMPROMISSO',
+        'AVALIACAO_ORIENTADOR', # Certifique-se que este ID existe em TIPO_DOCUMENTO_CHOICES
+        'AVALIACAO_SUPERVISOR', # Certifique-se que este ID existe em TIPO_DOCUMENTO_CHOICES
+        'FICHA_PESSOAL',        # Certifique-se que este ID existe em TIPO_DOCUMENTO_CHOICES
+        'FICHA_IDENTIFICACAO',  # Certifique-se que este ID existe em TIPO_DOCUMENTO_CHOICES
+        # Adicione os OUTROS IDs de TIPO_DOCUMENTO_CHOICES aqui, na ordem que preferir
+        'COMP_RESIDENCIA',
+        'COMP_AGUA_LUZ',
+        'ID_CARD',
+        'SUS_CARD',
+        'VACINA_CARD',
+        'APOLICE_SEGURO',
+    ]
+
+    # 3. Cria um dicionário ordenado para garantir a ordem
+    documentos_dict = OrderedDict()
+    # Adiciona documentos na ordem desejada
+    for tipo in ordem_desejada:
+        documentos_dict[tipo] = None # Inicializa com None
+    # Preenche o dicionário com os documentos encontrados
+    for doc in documentos_qs:
+        if doc.tipo_documento in documentos_dict:
+            documentos_dict[doc.tipo_documento] = doc
+
+    # Adiciona quaisquer documentos encontrados que não estavam na ordem_desejada (caso TIPO_DOCUMENTO_CHOICES mude)
+    for doc in documentos_qs:
+        if doc.tipo_documento not in documentos_dict:
+             documentos_dict[doc.tipo_documento] = doc
+
+
+    # 4. Cria a lista final ordenada (removendo None se algum tipo não foi encontrado)
+    documentos_ordenados = [doc for doc in documentos_dict.values() if doc is not None]
+
+
+    context = {
+        'estagio': estagio,
+        'documentos': documentos_ordenados # Envia a lista ORDENADA para o template
+    }
+
+    return render(request, 'aluno/estagio/detalhes_estagio.html', context)
+
+
+@login_required
+@role_required('aluno')
+def visualizar_documento_estagio(request, documento_id):
+    documento = get_object_or_404(DocumentoEstagio, id=documento_id, estagio__aluno=request.user)
+    estagio = documento.estagio
+
+    # Define qual template será usado
+    if documento.tipo_documento == 'TERMO_COMPROMISSO':
+        template_name = 'aluno/estagio/docs/TERMO-DE-COMPROMISSO_VISUALIZAR.html'
+    else:
+        messages.error(request, "A visualização para este tipo de documento ainda não foi criada.")
+        return redirect('detalhes_estagio_aluno')
+
+    dados = documento.dados_formulario or {}
+
+    # 🔧 Converte campos de data (string → datetime.date)
+    for campo in ['data_inicio', 'data_fim']:
+        valor = dados.get(campo)
+        if isinstance(valor, str):
+            try:
+                dados[campo] = datetime.date.fromisoformat(valor)
+            except ValueError:
+                pass
+
+    # ✅ Verifica se o arquivo PDF anexado realmente existe
+    pdf_existe = False
+    if documento.pdf_supervisor_assinado:
+        try:
+            pdf_existe = documento.pdf_supervisor_assinado.storage.exists(documento.pdf_supervisor_assinado.name)
+        except Exception:
+            pdf_existe = False
+
+    context = {
+        'documento': documento,
+        'aluno': request.user,
+        'estagio': estagio,
+        'dados': dados,
+        'pdf_existe': pdf_existe,  # adiciona flag segura para o template
+    }
+
+    return render(request, template_name, context)
+
+
+@login_required
+@role_required('aluno')
+def upload_pdf_assinado(request, documento_id):
+    documento = get_object_or_404(DocumentoEstagio, id=documento_id, estagio__aluno=request.user)
+
+    if request.method == 'POST' and 'pdf_supervisor_assinado' in request.FILES:
+        documento.pdf_supervisor_assinado = request.FILES['pdf_supervisor_assinado']
+        documento.save()
+        messages.success(request, 'PDF anexado com sucesso!')
+    else:
+        messages.error(request, 'Nenhum arquivo foi selecionado.')
+
+    return redirect('visualizar_documento_estagio', documento_id=documento.id)
+
+@login_required
+@role_required('aluno')
+def remover_pdf_assinado(request, documento_id):
+    documento = get_object_or_404(DocumentoEstagio, id=documento_id, estagio__aluno=request.user)
+
+    if request.method == 'POST':
+        if documento.pdf_supervisor_assinado:
+            # Apaga o arquivo físico e limpa o campo do modelo
+            documento.pdf_supervisor_assinado.delete(save=False)
+            documento.pdf_supervisor_assinado = None
+            documento.save()
+            messages.success(request, "O PDF anexado foi removido com sucesso.")
+        else:
+            messages.warning(request, "Nenhum PDF estava anexado a este documento.")
+
+    return redirect('visualizar_documento_estagio', documento_id=documento.id)
+
+@login_required
+@role_required('aluno')
+def assinar_documento_aluno(request, documento_id):
+    """
+    Registra a assinatura do aluno no documento.
+    """
+    documento = get_object_or_404(DocumentoEstagio, id=documento_id, estagio__aluno=request.user)
+    
+    # Verifica se o documento está no status correto para assinar
+    # (Deve ter sido salvo pelo menos uma vez, mudando de RASCUNHO para AGUARDANDO_ASSINATURAS)
+    if documento.status == 'RASCUNHO':
+         messages.warning(request, "Este documento não está pronto para ser assinado. Edite e Salve o documento primeiro.")
+         return redirect('visualizar_documento_estagio', documento_id=documento.id)
+
+    # Verifica se já não foi assinado
+    if documento.assinado_aluno_em:
+        messages.warning(request, "Você já assinou este documento.")
+        return redirect('visualizar_documento_estagio', documento_id=documento.id)
+        
+    # --- Executa a Ação de Assinar ---
+    documento.assinado_aluno_em = now() # 'now' deve estar importado de django.utils.timezone
+    documento.save()
+    
+    messages.success(request, "Documento assinado com sucesso!")
+    return redirect('visualizar_documento_estagio', documento_id=documento.id)
+
+
+@login_required
+@role_required('aluno')
+def compartilhar_documento_aluno(request, documento_id):
+    """
+    "Conclui" e "Compartilha" o documento com a escola.
+    Muda o status para 'EM_VERIFICACAO' e torna 'publico'.
+    """
+    documento = get_object_or_404(DocumentoEstagio, id=documento_id, estagio__aluno=request.user)
+    estagio = documento.estagio
+
+    # Requisitos para compartilhar:
+    # 1. Deve estar assinado pelo aluno
+    if not documento.assinado_aluno_em:
+        messages.error(request, "Você precisa assinar o documento antes de compartilhá-lo.")
+        return redirect('visualizar_documento_estagio', documento_id=documento.id)
+    
+    # 2. O professor orientador deve ter sido selecionado
+    if not estagio.orientador:
+        messages.error(request, "Você precisa selecionar um Professor Orientador (na página 'Editar') antes de compartilhar.")
+        return redirect('visualizar_documento_estagio', documento_id=documento.id)
+        
+    # 3. Não pode já ter sido compartilhado
+    if documento.status == 'EM_VERIFICACAO' or documento.status == 'FINALIZADO':
+        messages.warning(request, "Este documento já foi compartilhado.")
+        return redirect('visualizar_documento_estagio', documento_id=documento.id)
+
+    # --- Executa a Ação de Compartilhar ---
+    documento.status = 'EM_VERIFICACAO' # Envia para o Servidor/Professor
+    documento.publico = True # Torna visível
+    documento.save()
+    
+    # Opcional: Aqui você pode adicionar a lógica para enviar um email ao 'estagio.orientador'
+    
+    messages.success(request, f"Documento concluído e compartilhado com {estagio.orientador.get_full_name()}!")
+    return redirect('visualizar_documento_estagio', documento_id=documento.id)
+
+
+@login_required
+@role_required('aluno')
+def preencher_documento_estagio(request, documento_id):
+    """
+    VIEW ATUALIZADA: Agora é a página de "Editar".
+    Carrega o formulário para editar o documento.
+    """
+    documento = get_object_or_404(DocumentoEstagio, id=documento_id, estagio__aluno=request.user)
+    estagio = documento.estagio # Pegamos o objeto Estagio para salvar o orientador
+
+    # Verifica qual formulário e template usar baseado no tipo de documento
+    if documento.tipo_documento == 'TERMO_COMPROMISSO':
+        FormClass = TermoCompromissoForm
+        # --- MODIFICAÇÃO AQUI ---
+        # O template agora é o de EDIÇÃO
+        template_name = 'aluno/estagio/docs/TERMO-DE-COMPROMISSO_EDITAR.html' 
+    # (Futuramente, adicionar 'elif' para outros tipos de documento)
+    else:
+        messages.error(request, f"O preenchimento online para '{documento.get_tipo_documento_display()}' ainda não está disponível.")
+        return redirect('detalhes_estagio_aluno')
+
+    if request.method == 'POST':
+        form = FormClass(request.POST, request.FILES, orientador_initial=estagio.orientador)
+        
+        if form.is_valid():
+            dados_para_json = form.cleaned_data.copy()
+            
+            # 1. Lidar com o Orientador
+            orientador_selecionado = dados_para_json.pop('orientador', None) 
+            if orientador_selecionado:
+                estagio.orientador = orientador_selecionado
+                estagio.save() 
+
+            # 2. Lidar com o Anexo PDF
+            anexo_pdf = dados_para_json.pop('anexo_assinaturas', None) 
+            if anexo_pdf:
+                documento.pdf_supervisor_assinado = anexo_pdf
+            elif anexo_pdf is False: 
+                documento.pdf_supervisor_assinado = None
+            
+            # 3. Converter datas para strings (Correção do bug anterior)
+            if isinstance(dados_para_json.get('data_inicio'), datetime.date):
+                dados_para_json['data_inicio'] = dados_para_json['data_inicio'].isoformat()
+            if isinstance(dados_para_json.get('data_fim'), datetime.date):
+                dados_para_json['data_fim'] = dados_para_json['data_fim'].isoformat()
+            
+            # 4. Salvar o resto dos dados no JSON
+            documento.dados_formulario = dados_para_json
+            
+            # Atualiza o status
+            if documento.status == 'RASCUNHO':
+                 documento.status = 'AGUARDANDO_ASSINATURAS'
+            
+            documento.save() 
+
+            messages.success(request, f"'{documento.get_tipo_documento_display()}' salvo com sucesso!")
+            # Redireciona para a NOVA página de VISUALIZAÇÃO
+            return redirect('visualizar_documento_estagio', documento_id=documento.id)
+        else:
+            messages.error(request, "Erro ao salvar. Verifique os campos preenchidos.")
+
+    else: # (Método GET)
+        initial_data = documento.dados_formulario
+        form = FormClass(initial=initial_data, orientador_initial=estagio.orientador)
+
+    context = {
+        'form': form,
+        'documento': documento,
+        'aluno': request.user, 
+        'estagio': estagio 
+    }
+    return render(request, template_name, context)

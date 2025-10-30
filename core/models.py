@@ -2,6 +2,9 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 import datetime
 import random
+from django.db.models.signals import pre_delete, pre_save
+from django.dispatch import receiver
+import os
 
 
 class CustomUser(AbstractUser):
@@ -276,3 +279,34 @@ class DocumentoEstagio(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_documento_display()} - {self.estagio.aluno.get_full_name()}"
+    
+    
+    
+@receiver(pre_delete, sender=DocumentoEstagio)
+def apagar_pdf_ao_excluir_documento(sender, instance, **kwargs):
+    """Remove o arquivo físico quando o DocumentoEstagio é deletado."""
+    if instance.pdf_supervisor_assinado:
+        if os.path.isfile(instance.pdf_supervisor_assinado.path):
+            os.remove(instance.pdf_supervisor_assinado.path)
+
+@receiver(pre_save, sender=DocumentoEstagio)
+def substituir_pdf_antigo(sender, instance, **kwargs):
+    """
+    Quando um novo PDF é enviado, apaga o antigo automaticamente do disco
+    para não acumular arquivos.
+    """
+    if not instance.pk:
+        return  # documento novo, não há nada para comparar
+
+    try:
+        old_instance = DocumentoEstagio.objects.get(pk=instance.pk)
+    except DocumentoEstagio.DoesNotExist:
+        return
+
+    old_file = old_instance.pdf_supervisor_assinado
+    new_file = instance.pdf_supervisor_assinado
+
+    # Se o arquivo foi alterado (novo upload diferente)
+    if old_file and old_file != new_file:
+        if os.path.isfile(old_file.path):
+            os.remove(old_file.path)
