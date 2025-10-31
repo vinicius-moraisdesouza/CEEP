@@ -9,9 +9,26 @@
       font-family: 'Times New Roman', Times, serif;
       color: #000;
       line-height: 1.6; 
-      font-size: 12pt; /* Tamanho da fonte padrão para documentos oficiais A4 */
+      font-size: 12pt; 
     }
     
+    /* Estilos das listas (copiado do seu _EDITAR.html) */
+    ol[type="a"] {
+        counter-reset: item;
+        list-style-type: none;
+        padding-left: 2em;
+    }
+    ol[type="a"] li {
+        counter-increment: item;
+        position: relative;
+    }
+    ol[type="a"] li::before {
+        content: counter(item, lower-alpha) ") ";
+        position: absolute;
+        left: -1.5em;
+        font-weight: bold;
+    }
+
     /* Estilos de Assinatura e Rodapé (copiado do seu _EDITAR.html) */
     .document-footer {
         border-top: 1px solid #ccc;
@@ -22,6 +39,16 @@
         text-align: center;
         font-family: 'Times New Roman', Times, serif;
     }
+    .signature-line {
+        border-top: 1px solid #000; 
+        margin-left: 20px; 
+        margin-right: 20px;
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+    .signature-block {
+        margin-top: 4rem; 
+    }
     
     /* CSS para os botões de ação */
     .action-buttons-bar {
@@ -29,54 +56,43 @@
     }
 
     /* ******************************************************************
-     * CSS @media print OTIMIZADO (O ISOLAMENTO É FEITO POR JAVASCRIPT)
+     * CSS @media print (CORRIGIDO)
      ******************************************************************
      */
     @media print {
-        /* --- 1. CONFIGURAÇÃO BÁSICA E ESCALA --- */
-        body {
-            background-color: #fff !important;
+        /* Esconde tudo por padrão */
+        body * {
+            visibility: hidden;
         }
-        .action-buttons-bar {
+        /* Mostra apenas a área de impressão e seus filhos */
+        #print-area, #print-area * {
+            visibility: visible;
+        }
+        /* Posiciona a área de impressão no topo da página */
+        #print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+        /* Esconde elementos da UI */
+        .action-buttons-bar, .navbar, .sidebar, footer {
             display: none !important;
         }
-
-        /* REGRAS CRUCIAIS PARA EVITAR REDUÇÃO DE ZOOM E CORTES */
-        html, body, #print-area {
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-            zoom: 100% !important; /* FORÇA A ESCALA CORRETA */
+        .card {
+             box-shadow: none !important;
+             border: none !important;
         }
-        
-        /* Remove estilos de tela */
-        .card, .shadow-sm {
-            box-shadow: none !important;
-            border: none !important;
-        }
-
-        /* --- 2. CONTROLE DE QUEBRA DE PÁGINA --- */
-        /* Garante quebra de página dentro de blocos, mas evita quebra dentro
-           de regras (p, ul, ol) para manter a leitura coesa. */
-        p, ul, ol, li {
-            orphans: 4; /* Garante pelo menos 4 linhas no topo da nova página */
-            widows: 4;  /* Garante pelo menos 4 linhas na base da página */
-            page-break-inside: avoid !important; /* Evita quebra DENTRO dos blocos de texto/listas */
-        }
-        
-        /* Quebra de página ANTES dos blocos de assinatura, para iniciar em página nova ou limpa */
-        .signature-block, .card-footer, .document-footer {
-            page-break-before: always;
-        }
-        
-        /* Ajuste do padding do body na impressão */
         #print-area .card-body {
              padding: 0 !important; 
         }
         
-        /* Define as margens da PÁGINA de impressão (A4) */
+        /* Define as margens da PÁGINA de impressão */
         @page {
             size: A4;
-            margin: 20mm; /* Margem de 2cm, padrão para documentos */
+            margin: 20mm; /* Margem de 2cm */
         }
     }
 </style>
@@ -88,6 +104,20 @@
     <div class="row justify-content-center">
         <div class="col-lg-10 col-xl-9"> 
 
+            {% if request.user.tipo == 'aluno' %}
+                <a href="{% url 'detalhes_estagio_aluno' %}" class="btn btn-secondary btn-sm mb-2">
+                    <i class="fas fa-arrow-left me-1"></i> Voltar
+                </a>
+            {% elif request.user.tipo == 'professor' %}
+                 <a href="{% url 'professor_dashboard' %}" class="btn btn-secondary btn-sm mb-2">
+                    <i class="fas fa-arrow-left me-1"></i> Voltar
+                </a>
+            {% elif request.user.tipo == 'direcao' %}
+                <a href="{% url 'servidor_dashboard' %}" class="btn btn-secondary btn-sm mb-2">
+                    <i class="fas fa-arrow-left me-1"></i> Voltar
+                </a>
+            {% endif %}
+
             <div class="card shadow-sm mb-3 action-buttons-bar">
                 <div class="card-body p-2 d-flex justify-content-between align-items-center flex-wrap">
                     <div>
@@ -95,34 +125,79 @@
                     </div>
                     <div class="ms-auto">
                         
-                        {# Botão de Anexar PDF (leva para a página de edição) #}
-                        <form id="upload-pdf-form" action="{% url 'upload_pdf_assinado' documento.id %}" method="post" enctype="multipart/form-data" style="display: inline;">
-                            {% csrf_token %}
-                            <label for="pdf-upload-input" class="btn btn-info btn-sm mb-0" title="Anexar PDF com assinaturas manuais" style="cursor: pointer;">
-                                <i class="fas fa-paperclip me-1"></i> Anexar PDF
-                            </label>
-                            <input type="file" name="pdf_supervisor_assinado" id="pdf-upload-input" accept="application/pdf" style="display: none;" onchange="document.getElementById('upload-pdf-form').submit();">
-                        </form>
-                        
-                        {# BOTÃO IMPRIMIR ATUALIZADO PARA USAR A FUNÇÃO JAVASCRIPT #}
-                        <button onclick="printDocumento()" class="btn btn-secondary btn-sm" title="Imprimir documento para assinatura manual">
+                        {# Botão Imprimir (Sempre visível para ambos) #}
+                        <button type="button" onclick="printDocumento()" class="btn btn-secondary btn-sm" title="Imprimir documento para assinatura manual">
                             <i class="fas fa-print me-1"></i> Imprimir
                         </button>
-                        
-                        {# Botão Editar (leva para a página de edição) #}
-                        <a href="{% url 'preencher_documento_estagio' documento.id %}" class="btn btn-warning btn-sm" title="Editar os dados do documento">
-                            <i class="fas fa-edit me-1"></i> Editar
-                        </a>
 
-                        {# Botão Assinar (precisa de nova view) #}
-                        <a href="#" class="btn btn-success btn-sm disabled" title="Assinar eletronicamente (Em breve)">
-                            <i class="fas fa-pen-alt me-1"></i> Assinar
-                        </a>
+                        {# ========================== #}
+                        {# LÓGICA DO ALUNO #}
+                        {# ========================== #}
+                        {% if request.user.tipo == 'aluno' %}
+                            {% if documento.status == 'RASCUNHO' %}
+                                <a href="{% url 'preencher_documento_estagio' documento.id %}" class="btn btn-secondary btn-sm" title="Editar os dados ou anexar PDF">
+                                    <i class="fas fa-edit me-1"></i> Editar
+                                </a>
+                                <form id="upload-pdf-form" action="{% url 'upload_pdf_assinado' documento.id %}" method="post" enctype="multipart/form-data" style="display: inline;">
+                                    {% csrf_token %}
+                                    <label for="pdf-upload-input" class="btn btn-secondary btn-sm" title="Anexar PDF com assinaturas manuais" style="cursor: pointer;">
+                                        <i class="fas fa-paperclip me-1"></i> Anexar PDF
+                                    </label>
+                                    <input type="file" name="pdf_supervisor_assinado" id="pdf-upload-input" accept="application/pdf" style="display: none;" onchange="document.getElementById('upload-pdf-form').submit();">
+                                </form>
+                                <a href="{% url 'assinar_documento_aluno' documento.id %}" class="btn btn-primary btn-sm" 
+                                   title="Assinar eletronicamente (Marca o documento como Concluído)"
+                                   onclick="return confirm('Você confirma que leu e concorda com todos os termos deste documento? Esta ação não pode ser desfeita.')">
+                                    <i class="fas fa-pen-alt me-1"></i> Assinar e Encaminhar
+                                </a>
+                            {% else %}
+                                <span class="badge bg-success text-white p-2">
+                                    <i class="fas fa-check me-1"></i> Você já assinou este documento
+                                </span>
+                            {% endif %}
                         
-                        {# Botão Remover (precisa de nova view) #}
-                        <a href="#" class="btn btn-danger btn-sm disabled" title="Remover documento (Em breve)">
-                            <i class="fas fa-trash me-1"></i> Remover
-                        </a>
+                        {# ========================== #}
+                        {# LÓGICA DO PROFESSOR #}
+                        {# ========================== #}
+                        {% elif request.user.tipo == 'professor' %}
+                            
+                            {% if pode_assinar_orientador %}
+                                <a href="{% url 'professor_assinar_documento' documento.id %}" class="btn btn-primary btn-sm shadow"
+                                   onclick="return confirm('Assinar este documento? Esta ação será registrada com seu nome e data.');">
+                                    <i class="fas fa-pen-alt me-1"></i> Assinar
+                                </a>
+                            {% elif documento.assinado_orientador_em %}
+                                <span class="badge bg-success text-white p-2">
+                                    <i class="fas fa-check me-1"></i> Assinado por você
+                                </span>
+                            {% else %}
+                                <span class="badge bg-light text-dark p-2">
+                                    Não requer sua ação no momento
+                                </span>
+                            {% endif %}
+
+                        {# ========================== #}
+                        {# LÓGICA DA DIREÇÃO #}
+                        {# ========================== #}
+                        {% elif request.user.tipo == 'direcao' %}
+                            
+                            {% if pode_assinar_direcao %}
+                                <a href="{% url 'direcao_assinar_documento' documento.id %}" class="btn btn-primary btn-sm shadow"
+                                   onclick="return confirm('Assinar este documento como Diretor(a)? Esta ação será registrada com seu nome e data.');">
+                                    <i class="fas fa-pen-alt me-1"></i> Assinar
+                                </a>
+                            {% elif documento.assinado_diretor_em %}
+                                <span class="badge bg-success text-white p-2">
+                                    <i class="fas fa-check me-1"></i> Assinado pela Direção
+                                </span>
+                            {% else %}
+                                <span class="badge bg-light text-dark p-2">
+                                    Não requer sua ação no momento
+                                </span>
+                            {% endif %}
+
+                        {% endif %}
+                        
                     </div>
                 </div>
             </div>
@@ -130,7 +205,7 @@
                 <div class="card-body p-4 p-md-5 bg-white document-body">
 
                     <div class="text-center mb-4">
-                        <img src="{% static 'assets/img/cabecalho.png' %}" alt="Cabeçalho CEEP" style="width: 100%;">
+                        <img src="{% static 'assets/img/cabecalho.png' %}" alt="Cabeçalho CEEP" style="width: 100%; max-width: 700px;">
                     </div>
 
                     <h5 class="text-center fw-bold mb-4" style="text-transform: uppercase;">Termo de Compromisso de Estágio Curricular Supervisionado</h5>
@@ -365,7 +440,6 @@
 
                 </div> {# Fim card-body #}
             </div> {# Fim card #}
-            
         </div>
     </div>
 </div>
@@ -374,46 +448,46 @@
 {{ block.super }}
 
 <script>
-    /**
-     * @method printDocumento
-     * @description Isola a área de impressão (#print-area), executa a impressão 
-     * e restaura o conteúdo original da página.
-     * É a solução mais robusta para impressão seletiva.
-     */
-    function printDocumento() {
-        const printArea = document.getElementById('print-area');
-        
-        // 1. Verifica se a área de impressão existe
-        if (!printArea) {
-            console.error('Área de impressão (#print-area) não encontrada.');
-            alert('Não foi possível encontrar a área do documento para impressão.');
-            return;
-        }
+/**
+ * @method printDocumento
+ * @description Isola a área de impressão (#print-area), executa a impressão 
+ * e restaura o conteúdo original da página.
+ * É a solução mais robusta e compatível para impressão seletiva.
+ */
+function printDocumento() {
+    const printArea = document.getElementById('print-area');
+    
+    // 1️⃣ Verifica se existe área de impressão
+    if (!printArea) {
+        console.error('Área de impressão (#print-area) não encontrada.');
+        alert('Não foi possível encontrar a área do documento para impressão.');
+        return;
+    }
 
-        const body = document.body;
-        
-        // 2. Armazena o conteúdo original da página
-        const originalBodyContent = body.innerHTML;
-        
-        // 3. Substitui o conteúdo do body pelo conteúdo da área de impressão
+    const body = document.body;
+    
+    // 2️⃣ Armazena o conteúdo original
+    const originalBodyContent = body.innerHTML;
+    const scrollY = window.scrollY;
+
+    try {
+        // 3️⃣ Substitui o conteúdo do body pela área a imprimir
         body.innerHTML = printArea.outerHTML;
 
-        // 4. Executa o comando de impressão
+        // 4️⃣ Executa a impressão
         window.print();
+    } finally {
+        // 5️⃣ Restaura o conteúdo original
+        body.innerHTML = originalBodyContent;
 
-        // 5. Restaura o conteúdo original
+        // 6️⃣ Restaura o scroll e scripts (Bootstrap, etc.)
+        window.scrollTo(0, scrollY);
         setTimeout(() => {
-            // Restaura o HTML do body
-            body.innerHTML = originalBodyContent;
-            
-            // 6. Recarrega os scripts e estados
-            // Recarrega a página para re-inicializar todos os listeners de eventos, 
-            // bibliotecas (como Bootstrap/jQuery), e scripts.
-            window.location.reload(); 
-        }, 0);
+            window.location.reload();
+        }, 100);
     }
+}
 </script>
 
 {% endblock scripts %}
-
 {% endblock content %}

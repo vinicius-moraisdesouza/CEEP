@@ -6,3 +6,6 @@ pip install -r requirements.txt
 git add .
 git commit -m "alteração feita"
 git push origin main
+
+python manage.py makemigrations
+python manage.py migrate

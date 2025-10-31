@@ -99,10 +99,8 @@ class AlunoCreateForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Define que o texto exibido no dropdown 'turma' será o nome curto
         self.fields['turma'].label_from_instance = lambda obj: obj.nome_curto
 
-        # Lógica para repopular os 'choices' quando um formulário com erros é submetido (POST)
         if 'curso' in self.data:
             try:
                 curso_id = int(self.data.get('curso'))
@@ -116,8 +114,7 @@ class AlunoCreateForm(forms.ModelForm):
                         turno_val = self.data.get('turno')
                         self.fields['turma'].queryset = Turma.objects.filter(curso_id=curso_id, ano_modulo=ano_modulo_val, turno=turno_val).order_by('turma')
             except (ValueError, TypeError):
-                pass  # Ignora erros se os dados forem inválidos
-        # Lógica para preencher os campos na tela de EDIÇÃO (GET)
+                pass 
         if self.instance and self.instance.pk:
             try:
                 turma_atual = self.instance.alunoturma_set.first().turma
@@ -149,6 +146,7 @@ class AlunoCreateForm(forms.ModelForm):
         aluno = super().save(commit=False)
         aluno.tipo = 'aluno'
         
+        # (Esta lógica está correta, não gera senha/matrícula ao editar)
         if not aluno.pk:
             ano = datetime.date.today().year
             aleatorio = ''.join(str(random.randint(0, 9)) for _ in range(8))
@@ -200,12 +198,16 @@ class ProfessorCreateForm(forms.ModelForm):
     def save(self, commit=True):
         professor = super().save(commit=False)
         professor.tipo = 'professor'
-        ano = datetime.date.today().year
-        aleatorio = ''.join(str(random.randint(0, 9)) for _ in range(8))
-        professor.numero_matricula = f"{ano}{aleatorio}"
-        professor.username = professor.numero_matricula
-        professor.set_password("Senha123#")
-        professor.senha_temporaria = True
+        
+        # 🎯 CORREÇÃO: Adicionada a verificação 'if not professor.pk'
+        # para não gerar nova senha/matrícula ao editar
+        if not professor.pk:
+            ano = datetime.date.today().year
+            aleatorio = ''.join(str(random.randint(0, 9)) for _ in range(8))
+            professor.numero_matricula = f"{ano}{aleatorio}"
+            professor.username = professor.numero_matricula
+            professor.set_password("Senha123#")
+            professor.senha_temporaria = True
 
         if commit:
             professor.save()
@@ -213,6 +215,7 @@ class ProfessorCreateForm(forms.ModelForm):
 
 
 class ServidorCreateForm(forms.ModelForm):
+    # 🎯 CORREÇÃO: 'direcao' está correto, alinhado com o models.py
     TIPO_USUARIO_CHOICES = (
         ('', '---------'),
         ('servidor', 'Administrativo'),
@@ -224,10 +227,13 @@ class ServidorCreateForm(forms.ModelForm):
         required=True
     )
 
+    # 🎯 CORREÇÃO: Adicionado campo 'email' que faltava no __init__
+    email = forms.EmailField(required=False, label="Email (Opcional)")
+
     class Meta:
         model = CustomUser
         fields = [
-            'first_name', 'last_name', 'eixo',
+            'first_name', 'last_name', 'eixo', 'email', # 🎯 'email' adicionado
             'data_nascimento', 'cidade_nascimento', 'cpf', 'rg', 'orgao', 'data_expedicao',
             'nome_mae', 'nome_pai',
             'telefone', 'endereco_cep', 'endereco_cidade', 'endereco_bairro', 'endereco_rua', 'endereco_numero',
@@ -238,6 +244,7 @@ class ServidorCreateForm(forms.ModelForm):
         if 'eixo' in self.fields:
             self.fields['eixo'].required = False
         
+        # 🎯 CORREÇÃO: Esta ordenação agora funciona
         field_order = ['tipo_usuario', 'eixo', 'first_name', 'last_name', 'email', 'cpf', 'rg']
         self.order_fields(field_order)
 
@@ -252,66 +259,47 @@ class ServidorCreateForm(forms.ModelForm):
     def save(self, commit=True):
         servidor = super().save(commit=False)
         
-        ano = datetime.date.today().year
-        aleatorio = ''.join(str(random.randint(0, 9)) for _ in range(8))
-        servidor.numero_matricula = f"{ano}{aleatorio}"
-        servidor.username = servidor.numero_matricula
-        servidor.set_password("Senha123#")
-        servidor.senha_temporaria = True
+        # 🎯 CORREÇÃO: Adicionada a verificação 'if not servidor.pk'
+        # para não gerar nova senha/matrícula ao editar
+        if not servidor.pk:
+            ano = datetime.date.today().year
+            aleatorio = ''.join(str(random.randint(0, 9)) for _ in range(8))
+            servidor.numero_matricula = f"{ano}{aleatorio}"
+            servidor.username = servidor.numero_matricula
+            servidor.set_password("Senha123#")
+            servidor.senha_temporaria = True
 
         if commit:
             servidor.save()
         return servidor
     
-class EstagioCreateForm(forms.ModelForm):
-    """
-    Formulário para o Aluno solicitar a abertura do seu
-    processo de estágio, preenchendo os dados iniciais.
-    """
-    class Meta:
-        model = Estagio
-        
-        # Campos que o aluno deve preencher
-        fields = [
-            'supervisor_nome', 
-            'supervisor_empresa', 
-            'supervisor_cargo', 
-            'supervisor_email', 
-            'data_inicio', 
-            'data_fim'
-        ]
-        
-        # Labels (textos) que aparecerão no formulário
-        labels = {
-            'supervisor_nome': 'Nome do Supervisor da Empresa',
-            'supervisor_empresa': 'Nome da Empresa Concedente',
-            'supervisor_cargo': 'Cargo do Supervisor',
-            'supervisor_email': 'Email do Supervisor',
-            'data_inicio': 'Data de Início Prevista',
-            'data_fim': 'Data de Término Prevista',
-        }
-        
-        # Widgets para estilizar com Bootstrap (como nos seus outros formulários)
-        widgets = {
-            'supervisor_nome': forms.TextInput(attrs={'class': 'form-control'}),
-            'supervisor_empresa': forms.TextInput(attrs={'class': 'form-control'}),
-            'supervisor_cargo': forms.TextInput(attrs={'class': 'form-control'}),
-            'supervisor_email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'email@empresa.com'}),
-            # Estes 'type': 'date' fazem o navegador mostrar um calendário
-            'data_inicio': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}), 
-            'data_fim': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-        }
-        
-# Em autenticacao/forms.py
+# 🎯 REMOVIDO: 'EstagioCreateForm' foi removido
+# Esta classe tornou-se obsoleta. A 'gestao_estagio_aluno' (view)
+# agora cria o Estagio, e o 'TermoCompromissoForm' (abaixo)
+# é usado para preencher os dados.
 
-# ... (outros imports e formulários) ...
+
+class ProfessorOrientadorChoiceField(forms.ModelChoiceField):
+    """
+    Campo customizado que muda como o nome do professor é exibido.
+    Ex: "Alex Barbosa - Informática (Internet)"
+    """
+    def label_from_instance(self, obj):
+        prof_name = obj.get_full_name()
+        
+        vinculo = obj.professormateriaanocursomodalidade_set.select_related('materia', 'curso').first()
+        
+        if vinculo:
+            details = f"{vinculo.materia.nome} ({vinculo.curso.nome})"
+            return f"{prof_name} - {details}"
+        else:
+            return f"{prof_name} - (Sem vínculos cadastrados)"
+        
 
 class TermoCompromissoForm(forms.Form):
     """
     Este formulário representa os campos EDITÁVEIS
     do documento TERMO-DE-COMPROMISSO.html.
-    Os dados do aluno (nome, CPF, etc.) virão do 'request.user'.
-    Os dados da empresa serão preenchidos pelo aluno.
     """
     
     # Dados da Empresa (Concedente)
@@ -340,57 +328,43 @@ class TermoCompromissoForm(forms.Form):
     apolice_empresa = forms.CharField(label="Nome da Seguradora")
     
     # Campo Orientador
-    orientador = forms.ModelChoiceField(
-        queryset=CustomUser.objects.filter(tipo='professor').order_by('first_name', 'last_name'), # Corrigido order_by
+    orientador = ProfessorOrientadorChoiceField(
+        queryset=CustomUser.objects.filter(tipo='professor').order_by('first_name', 'last_name'),
         label="Professor(a) Orientador(a) da Escola",
-        required=True, # Ajuste se necessário
+        required=True, 
         empty_label="-- Selecione o Professor --",
-        widget=forms.Select(attrs={'class': 'form-select form-select-sm'})
+        widget=forms.Select(attrs={'class': 'form-select form-select-sm'}) 
     )
 
     # Campo Anexo PDF
     anexo_assinaturas = forms.FileField(
-        label="Anexar aqui o PDF",
+        label="Anexar PDF (com assinaturas do Supervisor/Responsável)",
         required=False,
         widget=forms.ClearableFileInput(attrs={'class': 'form-control form-control-sm'})
     )
     
     
-    # ==========================================================
-    # MÉTODO __init__ CORRIGIDO
-    # ==========================================================
+    # MÉTODO __init__
     def __init__(self, *args, **kwargs):
-        # Capturamos o valor inicial do orientador passado pela view
         orientador_initial = kwargs.pop('orientador_initial', None)
-        
-        # CHAMAMOS SUPER() PRIMEIRO
         super().__init__(*args, **kwargs)
         
-        # Agora, 'self.errors' existe (está vazio em GET, preenchido em POST inválido)
-
         for field_name, field in self.fields.items():
             
-            # Ignora os campos que NÃO devem ser 'inline'
             if field_name not in ['orientador', 'anexo_assinaturas']: 
-                attrs = {'class': 'inline-input'} # Usa a classe inline
+                attrs = {'class': 'inline-input'}
                 
-                # Define o tipo de input para datas e números
-                if 'data' in field_name:
+                if field_name == 'concedente_cep':
+                     attrs['data-mask'] = '00000-000'
+                elif 'data' in field_name:
                     attrs['type'] = 'date'
                 elif isinstance(field, forms.IntegerField):
                     attrs['type'] = 'number'
                 
-                # ================================================
-                # CORREÇÃO: Verificamos 'self.errors' (do formulário)
-                # e não 'field.errors' (que não existe aqui)
-                # ================================================
                 if self.errors.get(field_name):
-                    attrs['class'] += ' is-invalid' # Adiciona a classe de erro
+                    attrs['class'] += ' is-invalid' 
                 
-                # Atualiza o widget do campo
                 field.widget.attrs.update(attrs)
             
-            # Define o valor inicial para o dropdown 'orientador', se foi passado
             elif field_name == 'orientador' and orientador_initial:
                  self.initial['orientador'] = orientador_initial
-    # ==========================================================

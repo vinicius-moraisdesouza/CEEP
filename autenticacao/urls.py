@@ -57,11 +57,20 @@ urlpatterns = [
     # PROFESSOR - Dashboard
     path('professor/materia/<int:materia_id>/turma/<int:turma_id>/', views.detalhar_turma_professor, name='detalhar_turma_professor'),
     
-    # PROFESSOR - Turmas/Matérias/Notas
+    # PROFESSOR - Turmas/Matérias/Notas/Estágio
     path('professor/materia/<int:materia_id>/turma/<int:turma_id>/', views.ver_turma_professor, name='ver_turma_professor'),
     path('professor/vinculo/<int:vinculo_id>/turmas/', views.listar_turmas_vinculadas, name='listar_turmas_vinculadas'),
     path('professor/aluno/<int:aluno_id>/detalhes/', views.ver_detalhes_aluno_professor, name='ver_detalhes_aluno_professor'),
     path('professor/inserir-nota/', views.inserir_nota, name="inserir_nota"),
+    
+    # 🎯 PROFESSOR - Rotas de Estágio (Limpas)
+    path('professor/estagio/documento/<int:documento_id>/visualizar/', views.professor_visualizar_documento, name='professor_visualizar_documento'),
+    path('professor/estagio/documento/<int:documento_id>/assinar/', views.professor_assinar_documento, name='professor_assinar_documento'),
+    
+    # 🎯 REMOVIDO: professor_listar_dossies (obsoleto)
+    # 🎯 REMOVIDO: professor_analisar_dossie (obsoleto)
+    # 🎯 REMOVIDO: assinar_dossie_orientador (obsoleto)
+    # 🎯 REMOVIDO: professor_encaminhar_servidor (obsoleto)
     
     # ALUNO - Boletim - Estágio
     path('aluno/boletim/', views.ver_boletim_aluno, name='ver_boletim_aluno'),
@@ -72,5 +81,13 @@ urlpatterns = [
     path('aluno/estagio/documento/<int:documento_id>/upload-pdf/', views.upload_pdf_assinado, name='upload_pdf_assinado'),
     path('aluno/estagio/documento/<int:documento_id>/remover_pdf/', views.remover_pdf_assinado, name='remover_pdf_assinado'),
     path('aluno/estagio/documento/<int:documento_id>/assinar/', views.assinar_documento_aluno, name='assinar_documento_aluno'),
-    path('aluno/estagio/documento/<int:documento_id>/compartilhar/', views.compartilhar_documento_aluno, name='compartilhar_documento_aluno'),
+    
+    # 🎯 REMOVIDO: submeter_dossie_orientador (obsoleto)
+    
+    # 🎯 NOVAS ROTAS - SERVIDOR / DIREÇÃO
+    path('servidor/monitorar/', views.servidor_monitorar_alunos, name='servidor_monitorar_alunos'),
+    path('servidor/aluno/<int:aluno_id>/documentos/', views.servidor_ver_documentos_aluno, name='servidor_ver_documentos_aluno'),
+    path('direcao/documento/<int:documento_id>/assinar/', views.direcao_assinar_documento, name='direcao_assinar_documento'),
+    path('direcao/documento/<int:documento_id>/visualizar/', views.direcao_visualizar_documento, name='direcao_visualizar_documento'),
+    # 🎯 REMOVIDO: direcao_analisar_dossie (obsoleto)
 ]

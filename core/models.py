@@ -13,7 +13,7 @@ class CustomUser(AbstractUser):
         ('professor', 'Professor'),
         ('aluno', 'Aluno'),
         ('servidor', 'Servidor'),
-        ('diretor', 'Diretor'),
+        ('direcao', 'Direção'), # <-- 'direcao' está correto
     )
     
     EIXO_CHOICES = (
@@ -52,6 +52,7 @@ class CustomUser(AbstractUser):
 
     senha_temporaria = models.BooleanField(default=False)
 
+    # (Lógica do 'save' do CustomUser está correta, não precisa mudar)
     def save(self, *args, **kwargs):
         if not self.numero_matricula:
             ano = datetime.date.today().year
@@ -218,6 +219,17 @@ class Nota(models.Model):
 
 
 class Estagio(models.Model):
+    # ==========================================================
+    # 🎯 CORREÇÃO 1: Simplificar os status do Dossiê
+    # A fila agora é controlada pelos Documentos, não pelo Dossiê.
+    # ==========================================================
+    STATUS_GERAL_CHOICES = [
+        ('RASCUNHO_ALUNO', 'Rascunho (Aluno preenchendo)'),
+        ('EM_ANDAMENTO', 'Em Andamento (Aguardando assinaturas)'),
+        ('APROVADO', 'Aprovado (Todas assinaturas concluídas)'),
+        ('PENDENTE_CORRECAO', 'Pendente de Correções'),
+    ]
+
     aluno = models.OneToOneField(CustomUser, on_delete=models.CASCADE, limit_choices_to={'tipo': 'aluno'})
     orientador = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True, related_name='estagios_orientados', limit_choices_to={'tipo': 'professor'})
     
@@ -228,10 +240,15 @@ class Estagio(models.Model):
     
     data_inicio = models.DateField()
     data_fim = models.DateField()
-    status_geral = models.CharField(max_length=50, default="Em andamento")
+    
+    status_geral = models.CharField(
+        max_length=50, 
+        choices=STATUS_GERAL_CHOICES, # Usa os novos choices
+        default='RASCUNHO_ALUNO' 
+    )
 
     def __str__(self):
-        return f"Estágio de {self.aluno.get_full_name()}"
+        return f"Estágio de {self.aluno.get_full_name()} ({self.get_status_geral_display()})"
 
 
 class DocumentoEstagio(models.Model):
@@ -249,11 +266,15 @@ class DocumentoEstagio(models.Model):
         ('APOLICE_SEGURO', 'Apólice de Seguro'),
     ]
 
+    # ==========================================================
+    # 🎯 CORREÇÃO 2: Adicionar a "Fila de Aprovação" ao Documento
+    # ==========================================================
     STATUS_CHOICES = [
-        ('RASCUNHO', 'Rascunho (em preenchimento pelo aluno)'),
-        ('AGUARDANDO_ASSINATURAS', 'Aguardando Assinaturas'),
-        ('EM_VERIFICACAO', 'Em Verificação (pelo Servidor)'),
-        ('FINALIZADO', 'Finalizado e Arquivado'),
+        ('RASCUNHO', 'Rascunho (Pelo Aluno)'),
+        ('AGUARDANDO_ASSINATURA_PROF', 'Aguardando Assinatura (Professor)'),
+        ('AGUARDANDO_ASSINATURA_DIR', 'Aguardando Assinatura (Direção)'),
+        ('CONCLUIDO', 'Concluído'), # Status final para todos
+        ('REPROVADO', 'Reprovado (Pendente de Correção)'),
     ]
 
     estagio = models.ForeignKey(Estagio, on_delete=models.CASCADE, related_name='documentos')
@@ -263,7 +284,11 @@ class DocumentoEstagio(models.Model):
     
     arquivo_anexo = models.FileField(upload_to='anexos_estagio/', blank=True, null=True)
     
-    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='RASCUNHO')
+    status = models.CharField(
+        max_length=30, 
+        choices=STATUS_CHOICES, # Usa os novos choices
+        default='RASCUNHO'
+    )
 
     assinado_aluno_em = models.DateTimeField(null=True, blank=True)
     assinado_orientador_em = models.DateTimeField(null=True, blank=True)
@@ -281,13 +306,18 @@ class DocumentoEstagio(models.Model):
         return f"{self.get_tipo_documento_display()} - {self.estagio.aluno.get_full_name()}"
     
     
-    
+# ==========================================================
+# (Os 'receivers' abaixo estão corretos e não precisam de alteração)
+# ==========================================================
 @receiver(pre_delete, sender=DocumentoEstagio)
 def apagar_pdf_ao_excluir_documento(sender, instance, **kwargs):
     """Remove o arquivo físico quando o DocumentoEstagio é deletado."""
     if instance.pdf_supervisor_assinado:
         if os.path.isfile(instance.pdf_supervisor_assinado.path):
             os.remove(instance.pdf_supervisor_assinado.path)
+    if instance.arquivo_anexo:
+        if os.path.isfile(instance.arquivo_anexo.path):
+            os.remove(instance.arquivo_anexo.path)
 
 @receiver(pre_save, sender=DocumentoEstagio)
 def substituir_pdf_antigo(sender, instance, **kwargs):
@@ -296,17 +326,23 @@ def substituir_pdf_antigo(sender, instance, **kwargs):
     para não acumular arquivos.
     """
     if not instance.pk:
-        return  # documento novo, não há nada para comparar
+        return
 
     try:
         old_instance = DocumentoEstagio.objects.get(pk=instance.pk)
     except DocumentoEstagio.DoesNotExist:
         return
 
-    old_file = old_instance.pdf_supervisor_assinado
-    new_file = instance.pdf_supervisor_assinado
-
-    # Se o arquivo foi alterado (novo upload diferente)
-    if old_file and old_file != new_file:
-        if os.path.isfile(old_file.path):
-            os.remove(old_file.path)
+    # Compara o pdf_supervisor_assinado
+    old_file_supervisor = old_instance.pdf_supervisor_assinado
+    new_file_supervisor = instance.pdf_supervisor_assinado
+    if old_file_supervisor and old_file_supervisor != new_file_supervisor:
+        if os.path.isfile(old_file_supervisor.path):
+            os.remove(old_file_supervisor.path)
+            
+    # Compara o arquivo_anexo
+    old_file_anexo = old_instance.arquivo_anexo
+    new_file_anexo = instance.arquivo_anexo
+    if old_file_anexo and old_file_anexo != new_file_anexo:
+        if os.path.isfile(old_file_anexo.path):
+            os.remove(old_file_anexo.path)

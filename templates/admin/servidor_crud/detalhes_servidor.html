@@ -10,7 +10,7 @@
                 <h2 class="mb-0 text-dark">Detalhes do Servidor</h2>
                 <a href="{% url 'gerenciar_servidores' %}" class="btn btn-secondary">
                     <img src="{% static 'assets/img/voltar.png' %}" width='20px' height='20px' class="me-2">
-                    Voltar para Lista
+                    Voltar
                 </a>
             </div>
 
@@ -21,8 +21,8 @@
                         <div>
                             <h4 class="mb-0 text-white">{{ servidor.get_full_name }}</h4>
                             <p class="mb-0 mt-1">
-                                {% if servidor.tipo == 'diretor' %}
-                                    <span class="badge bg-danger p-2">DIRETOR(A)</span>
+                                {% if servidor.tipo == 'direcao' %}
+                                    <span class="badge bg-light text-secondary p-2 me-2">DIREÇÃO</span>
                                 {% elif servidor.tipo == 'servidor' %}
                                     <span class="badge bg-light text-secondary p-2 me-2">ADMINISTRATIVO</span>
                                     {% if servidor.eixo %}

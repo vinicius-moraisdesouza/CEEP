@@ -26,8 +26,8 @@
                 <td>{{ servidor.get_full_name }}</td>
 
                 <td>
-                    {% if servidor.tipo == 'diretor' %}
-                        <span class="badge bg-primary text-dark">Diretor</span>
+                    {% if servidor.tipo == 'direcao' %}
+                        <span class="badge bg-primary text-dark">Direção</span>
                     {% elif servidor.tipo == 'servidor' %}
                         <span class="badge bg-primary text-dark">Administrativo · {% if servidor.eixo %}{{ servidor.get_eixo_display }}{% endif %}</span>
                     {% endif %}

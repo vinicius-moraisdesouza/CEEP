@@ -10,11 +10,11 @@
                 <h2 class="mb-0 text-dark">Meu Processo de Estágio</h2>
                 <a href="{% url 'aluno_dashboard' %}" class="btn btn-secondary btn-sm">
                     <i class="fas fa-arrow-left me-1"></i>
-                    Voltar ao Dashboard
+                    Voltar
                 </a>
             </div>
 
-            {# ======== CARD: INFORMAÇÕES GERAIS ======== #}
+            {# ======== CARD: INFORMAÇÕES GERAIS (CORRIGIDO) ======== #}
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-header bg-secondary text-white py-2">
                     <h5 class="mb-0 fs-6">Informações Gerais</h5>
@@ -23,51 +23,91 @@
                     <div class="row g-2">
                         <div class="col-md-7">
                             <h6 class="text-muted small mb-0">Empresa Concedente</h6>
+                            {# CORREÇÃO: Lê do objeto Estagio, não do JSON 'dados' #}
                             <p class="text-dark mb-0">
-                                {{ estagio.dados_formulario.concedente_nome|default:"(Não preenchido)" }}
+                                {{ estagio.supervisor_empresa|default:"(Não preenchido)" }}
                             </p>
                         </div>
                         <div class="col-md-5">
                             <h6 class="text-muted small mb-0">Status Geral do Dossiê</h6>
-                            <span class="badge bg-light text-dark border">
-                                {{ estagio.status_geral|default:"Indefinido" }}
+                            {# Mostra o status geral do Dossiê #}
+                            <span class="badge 
+                                {% if estagio.status_geral == 'RASCUNHO_ALUNO' %}bg-light text-dark border{% endif %}
+                                {% if estagio.status_geral == 'AGUARDANDO_ORIENTADOR' %}bg-warning text-dark{% endif %}
+                                {% if estagio.status_geral == 'AGUARDANDO_SERVIDOR' %}bg-primary text-dark{% endif %}
+                                {% if estagio.status_geral == 'APROVADO' %}bg-success text-dark{% endif %}
+                                {% if estagio.status_geral == 'PENDENTE_CORRECAO' %}bg-danger text-dark{% endif %}
+                            p-2">
+                                {{ estagio.get_status_geral_display|default:"Indefinido" }}
                             </span>
                         </div>
 
                         <div class="col-md-7">
                             <h6 class="text-muted small mb-0">Supervisor da Empresa</h6>
+                            {# CORREÇÃO: Lê do objeto Estagio #}
                             <p class="text-dark mb-0">
-                                {{ estagio.dados_formulario.supervisor_nome|default:"(Não preenchido)" }}
-                                {% if estagio.dados_formulario.supervisor_cargo %}
-                                    <small class="text-muted"> - {{ estagio.dados_formulario.supervisor_cargo }}</small>
+                                {{ estagio.supervisor_nome|default:"(Não preenchido)" }}
+                                {% if estagio.supervisor_cargo and estagio.supervisor_cargo != "(Ainda não definido)" %}
+                                    <small class="text-muted"> - {{ estagio.supervisor_cargo }}</small>
                                 {% endif %}
                             </p>
                         </div>
 
                         <div class="col-md-5">
                             <h6 class="text-muted small mb-0">Período</h6>
+                            {# CORREÇÃO: Lê do objeto Estagio #}
                             <p class="text-dark mb-0">
-                                {% if estagio.dados_formulario.data_inicio %}
-                                    {{ estagio.dados_formulario.data_inicio|date:"d/m/Y" }}
-                                {% else %}
-                                    --/--/----
-                                {% endif %}
+                                {{ estagio.data_inicio|date:"d/m/Y" }}
                                 até
-                                {% if estagio.dados_formulario.data_fim %}
-                                    {{ estagio.dados_formulario.data_fim|date:"d/m/Y" }}
-                                {% else %}
-                                    --/--/----
-                                {% endif %}
+                                {{ estagio.data_fim|date:"d/m/Y" }}
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {# ======== CARD: DOCUMENTOS REQUERIDOS ======== #}
+            {# ======== CARD: DOCUMENTOS REQUERIDOS (CORRIGIDO) ======== #}
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center flex-wrap">
                     <h5 class="mb-0 fs-6">Documentos Requeridos</h5>
+                    
+                    {# ================================================== #}
+                    {# BOTÃO DE SUBMISSÃO DE DOSSIÊ (NOVA LÓGICA)         #}
+                    {# ================================================== #}
+                    
+                    {# Se o dossiê ainda é um rascunho... #}
+                    {% if estagio.status_geral == 'RASCUNHO_ALUNO' %}
+                        {% if all_docs_concluidos %}
+                            {# 1. Todos os docs estão 'CONCLUIDO_ALUNO', pode enviar #}
+                            <form action="{% url 'submeter_dossie_orientador' estagio.id %}" method="post" class="m-0">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-sm"
+                                        onclick="return confirm('Tem certeza que deseja submeter o dossiê para análise do Professor Orientador? Você não poderá fazer alterações após o envio.')">
+                                    <i class="fas fa-paper-plane me-1"></i> Submeter Dossiê para Análise
+                                </button>
+                            </form>
+                        {% else %}
+                            {# 2. Faltam docs, botão desabilitado #}
+                            <button class="btn btn-secondary btn-sm" disabled
+                                    title="Você precisa Concluir (Assinar/Anexar) TODOS os 11 documentos da lista para habilitar o envio.">
+                                <i class="fas fa-paper-plane me-1"></i> Submeter Dossiê
+                            </button>
+                        {% endif %}
+                    
+                    {# Se o dossiê já foi enviado... #}
+                    {% else %}
+                        <span class="badge 
+                            {% if estagio.status_geral == 'AGUARDANDO_ORIENTADOR' %}bg-warning text-dark{% endif %}
+                            {% if estagio.status_geral == 'AGUARDANDO_SERVIDOR' %}bg-primary text-white{% endif %}
+                            {% if estagio.status_geral == 'APROVADO' %}bg-success text-white{% endif %}
+                            {% if estagio.status_geral == 'PENDENTE_CORRECAO' %}bg-danger text-dark{% endif %}
+                        p-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Dossiê: {{ estagio.get_status_geral_display }}
+                        </span>
+                    {% endif %}
+                    {# ================================================== #}
+
                 </div>
                 <div class="card-body p-0">
                     {% if documentos %}
@@ -87,36 +127,30 @@
                                             <strong class="text-dark">{{ doc.get_tipo_documento_display }}</strong>
                                         </td>
                                         <td class="text-center align-middle">
+                                            {# CORREÇÃO: Atualizado para os novos status #}
                                             <span class="badge rounded-pill
-                                                {% if doc.status == 'FINALIZADO' %} bg-success text-white {% endif %}
-                                                {% if doc.status == 'EM_VERIFICACAO' or doc.status == 'AGUARDANDO_ASSINATURAS' %} bg-warning text-dark {% endif %}
-                                                {% if doc.status == 'RASCUNHO' %} bg-danger text-white {% endif %}">
+                                                {% if doc.status == 'CONCLUIDO_ALUNO' %} text-dark {% endif %}
+                                                {% if doc.status == 'RASCUNHO' %} text-dark {% endif %}
+                                                {% if doc.status == 'REPROVADO' %} text-dark {% endif %}">
                                                 {{ doc.get_status_display }}
                                             </span>
                                         </td>
                                         <td class="text-center align-middle">
-                                            {% if doc.tipo_documento == 'TERMO_COMPROMISSO' %}
-                                                {# Documento preenchido online #}
+                                            {# CORREÇÃO: Link da Lupa aponta para VISUALIZAR #}
+                                            {# Habilitado para TODOS os documentos que terão visualização #}
+                                            {% if doc.tipo_documento == 'TERMO_COMPROMISSO' or doc.tipo_documento == 'FICHA_PESSOAL' or doc.tipo_documento == 'FICHA_IDENTIFICACAO' or doc.tipo_documento == 'AVALIACAO_ORIENTADOR' or doc.tipo_documento == 'AVALIACAO_SUPERVISOR' %}
                                                 <a href="{% url 'visualizar_documento_estagio' doc.id %}"
                                                    class="btn btn-outline-primary btn-sm"
-                                                   title="Visualizar / Editar Documento">
+                                                   title="Visualizar Documento">
                                                    <i class="fas fa-search"></i>
                                                 </a>
-
+                                            {# Documentos que são apenas ANEXOS #}
                                             {% elif doc.tipo_documento == 'COMP_RESIDENCIA' or doc.tipo_documento == 'COMP_AGUA_LUZ' or doc.tipo_documento == 'ID_CARD' or doc.tipo_documento == 'SUS_CARD' or doc.tipo_documento == 'VACINA_CARD' or doc.tipo_documento == 'APOLICE_SEGURO' %}
-                                                {# Documentos de upload (desabilitados por enquanto) #}
-                                                <a href="#"
-                                                   class="btn btn-outline-secondary btn-sm disabled"
+                                                {# CORREÇÃO: Botão de Anexo aponta para EDITAR (view de preenchimento) #}
+                                                <a href="{% url 'preencher_documento_estagio' doc.id %}"
+                                                   class="btn btn-outline-info btn-sm"
                                                    title="Anexar Arquivo PDF/Imagem">
                                                    <i class="fas fa-paperclip"></i>
-                                                </a>
-
-                                            {% else %}
-                                                {# Outros documentos (ex: Avaliações, Ficha Pessoal) #}
-                                                <a href="#"
-                                                   class="btn btn-outline-secondary btn-sm disabled"
-                                                   title="Preenchimento online indisponível">
-                                                   <i class="fas fa-search"></i>
                                                 </a>
                                             {% endif %}
                                         </td>
